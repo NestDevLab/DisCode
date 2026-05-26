@@ -8,6 +8,7 @@ import type { WebSocketManager } from '../websocket.js';
 import type { CliPaths } from '../types.js';
 import type { PluginManager } from '../plugins/index.js';
 import type { CodexSDKPlugin } from '../plugins/codex-sdk-plugin.js';
+import { normalizeProjectPath } from '../services/sync-utils.js';
 
 export interface CodexThreadListRequestData {
     runnerId: string;
@@ -20,7 +21,7 @@ export interface CodexThreadListRequestData {
 
 export async function handleCodexThreadListRequest(
     data: CodexThreadListRequestData,
-    deps: { wsManager: WebSocketManager; cliPaths: CliPaths; pluginManager: PluginManager | null }
+    deps: { wsManager: WebSocketManager; cliPaths: CliPaths; pluginManager: PluginManager | null; defaultWorkspace?: string }
 ): Promise<void> {
     if (!data || data.runnerId !== deps.wsManager.runnerId) return;
 
@@ -70,15 +71,22 @@ export async function handleCodexThreadListRequest(
             archived: data.archived ?? null
         });
 
-        const threads = response.data.map(thread => ({
-            id: thread.id,
-            preview: thread.preview,
-            cwd: thread.cwd,
-            updatedAt: thread.updatedAt,
-            createdAt: thread.createdAt,
-            modelProvider: thread.modelProvider,
-            path: thread.path ?? null
-        }));
+        const allowedWorkspace = deps.defaultWorkspace ? normalizeProjectPath(deps.defaultWorkspace) : null;
+        const threads = response.data
+            .filter(thread => {
+                if (!allowedWorkspace) return true;
+                const cwd = thread.cwd || (typeof thread.path === 'string' ? thread.path : null);
+                return cwd ? normalizeProjectPath(cwd) === allowedWorkspace : false;
+            })
+            .map(thread => ({
+                id: thread.id,
+                preview: thread.preview,
+                cwd: thread.cwd,
+                updatedAt: thread.updatedAt,
+                createdAt: thread.createdAt,
+                modelProvider: thread.modelProvider,
+                path: thread.path ?? null
+            }));
 
         deps.wsManager.send({
             type: 'codex_thread_list_response',
