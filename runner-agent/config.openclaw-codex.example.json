@@ -1,0 +1,33 @@
+{
+  "_comment": "Example runner configuration for a machine that exposes a Codex/OpenClaw workspace to DisCode. Copy to config.json and customize.",
+  "botWsUrl": "ws://DISCODE_BOT_HOST:8080",
+  "runnerName": "openclaw-codex-runner",
+  "httpPort": 3122,
+  "defaultWorkspace": "/path/to/openclaw/workspace",
+  "cliTypes": ["codex"],
+  "heartbeatInterval": 30000,
+  "reconnectDelay": 5000,
+  "approvalTimeout": 30000,
+  "sessionReadyTimeout": 10000,
+  "cliSearchPaths": [
+    "/path/to/codex/bin",
+    "/usr/local/bin",
+    "/usr/bin"
+  ],
+  "tmux": {
+    "pollInterval": 1000,
+    "healthCheckInterval": 5000,
+    "sessionDiscoveryInterval": 5000,
+    "discoveryEnabled": true
+  },
+  "assistant": {
+    "enabled": true,
+    "folder": "/path/to/openclaw/workspace",
+    "plugin": "tmux"
+  },
+  "codexDefaults": {
+    "approvalPolicy": "on-request",
+    "sandbox": "workspace-write",
+    "persistSession": true
+  }
+}

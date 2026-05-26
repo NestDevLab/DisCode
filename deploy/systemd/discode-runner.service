@@ -1,0 +1,16 @@
+[Unit]
+Description=DisCode Runner Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/discode/runner-agent
+EnvironmentFile=/etc/discode/discode-runner.env
+ExecStart=/usr/bin/env bun run src/index.ts
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

@@ -272,7 +272,7 @@ Assistant: "Cloning repo..." -> git clone ... -> "Repo cloned. Spawning thread..
 
 The spawn-thread skill is available at: spawn-thread.sh "<folder>" "<cli_type>" "<message>"
 - folder: absolute path or relative to workspace
-- cli_type: "claude", "gemini", or "auto" (uses first available: ${this.deps.config.cliTypes[0]})
+- cli_type: "claude", "gemini", "codex", or "auto" (uses first available: ${this.deps.config.cliTypes[0]})
 - message: optional initial message for the new thread`;
 
         // Note: We don't actually send this as a message - it will be installed as a skill
