@@ -11,8 +11,13 @@ import { storage } from '../../storage.js';
 import { createErrorEmbed, createInfoEmbed, createSuccessEmbed } from '../../utils/embeds.js';
 import { getCategoryManager } from '../../services/category-manager.js';
 import { getSessionSyncService } from '../../services/session-sync.js';
+import { projectSettingsStore } from '../../services/project-settings.js';
 import { permissionStateStore } from '../../permissions/state-store.js';
+import { cliToSdkPlugin, cliTypeLabel } from '../button-utils.js';
+import { handleSessionReview } from '../session-wizard.js';
 import type { RunnerInfo, Session } from '../../../../shared/types.ts';
+
+type AiCliType = 'claude' | 'gemini' | 'codex';
 
 /**
  * Helper to add timeout to async operations
@@ -116,6 +121,105 @@ async function resolveProjectContext(interaction: any): Promise<{
     };
 }
 
+function normalizeAiCliType(value?: string | null): AiCliType | undefined {
+    return value === 'claude' || value === 'gemini' || value === 'codex' ? value : undefined;
+}
+
+function resolvePreferredCliType(
+    runner: RunnerInfo,
+    requestedCli?: string | null,
+    projectPath?: string
+): { cliType?: AiCliType; error?: string } {
+    const explicitCli = normalizeAiCliType(requestedCli);
+    if (requestedCli && !explicitCli) {
+        return { error: `Unsupported agent \`${requestedCli}\`.` };
+    }
+    if (explicitCli) {
+        return runner.cliTypes.includes(explicitCli)
+            ? { cliType: explicitCli }
+            : { error: `Runner \`${runner.name}\` does not support \`${explicitCli}\`.` };
+    }
+
+    const projectDefault = projectPath
+        ? projectSettingsStore.get(runner.runnerId, projectPath)?.config.defaultCliType
+        : undefined;
+    if (projectDefault && runner.cliTypes.includes(projectDefault)) {
+        return { cliType: projectDefault };
+    }
+
+    const runnerDefault = runner.config?.defaultCliType;
+    if (runnerDefault && runner.cliTypes.includes(runnerDefault)) {
+        return { cliType: runnerDefault };
+    }
+
+    return runner.cliTypes.length === 1 ? { cliType: runner.cliTypes[0] } : {};
+}
+
+async function continueWithSelectedCli(
+    interaction: any,
+    userId: string,
+    runner: RunnerInfo,
+    cliType: AiCliType
+): Promise<void> {
+    const state = botState.sessionCreationState.get(userId)!;
+    state.cliType = cliType;
+    state.plugin = cliToSdkPlugin(cliType);
+
+    if (state.folderPath) {
+        state.step = 'complete';
+        botState.sessionCreationState.set(userId, state);
+        await interaction.deferReply({ flags: 64 });
+        await handleSessionReview(interaction, userId);
+        return;
+    }
+
+    state.step = 'select_folder';
+    botState.sessionCreationState.set(userId, state);
+
+    const mainButtonRow = new ActionRowBuilder<ButtonBuilder>()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('session_default_folder')
+                .setLabel(runner.defaultWorkspace ? `Default (${runner.defaultWorkspace})` : 'Use Runner Default')
+                .setStyle(ButtonStyle.Success)
+                .setEmoji('📁'),
+            new ButtonBuilder()
+                .setCustomId('session_custom_folder')
+                .setLabel('Custom Folder')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('✏️')
+        );
+
+    const navButtonRow = new ActionRowBuilder<ButtonBuilder>()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('session_back_cli')
+                .setLabel('Back')
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji('◀️'),
+            new ButtonBuilder()
+                .setCustomId('session_cancel')
+                .setLabel('Cancel')
+                .setStyle(ButtonStyle.Danger)
+                .setEmoji('❌')
+        );
+
+    const embed = new EmbedBuilder()
+        .setColor(0x0099FF)
+        .setTitle('Select Working Folder')
+        .setDescription(`**Runner:** \`${runner.name}\`\n**Type:** ${cliTypeLabel(cliType)} SDK\n\nWhere should the session start?`);
+
+    if (runner.defaultWorkspace) {
+        embed.addFields({ name: 'Default Folder', value: `\`${runner.defaultWorkspace}\``, inline: false });
+    }
+
+    await interaction.reply({
+        embeds: [embed],
+        components: [mainButtonRow, navButtonRow],
+        flags: 64
+    });
+}
+
 /**
  * Handle /create-session command
  */
@@ -126,6 +230,9 @@ export async function handleCreateSession(interaction: any, userId: string): Pro
     }
 
     const projectContext = await resolveProjectContext(interaction);
+    const requestedRunnerId = interaction.options.getString('runner');
+    const requestedCli = interaction.options.getString('cli');
+    const requestedCliType = normalizeAiCliType(requestedCli);
 
     // Get accessible online runners
     const allRunners = storage.getUserRunners(userId).filter(r => r.status === 'online');
@@ -137,11 +244,20 @@ export async function handleCreateSession(interaction: any, userId: string): Pro
     });
 
     let runners = Array.from(runnersMap.values());
-    if (projectContext.runnerId) {
-        const candidate = runnersMap.get(projectContext.runnerId);
+    const contextRunnerId = requestedRunnerId || projectContext.runnerId;
+    if (contextRunnerId) {
+        const candidate = runnersMap.get(contextRunnerId);
         if (candidate && storage.canUserAccessRunner(userId, candidate.runnerId)) {
             runners = [candidate];
+        } else if (requestedRunnerId) {
+            await interaction.reply({
+                embeds: [createErrorEmbed('Runner Not Found', 'Requested runner is not online or accessible.')],
+                flags: 64
+            });
+            return;
         }
+    } else if (requestedCliType) {
+        runners = runners.filter(runner => runner.cliTypes.includes(requestedCliType));
     }
 
     if (runners.length === 0) {
@@ -164,96 +280,16 @@ export async function handleCreateSession(interaction: any, userId: string): Pro
             ...(projectContext.projectChannelId ? { projectChannelId: projectContext.projectChannelId } : {})
         });
 
-        // Check if we can also auto-select the CLI type
-        if (runner.cliTypes.length === 1) {
-            const cliType = runner.cliTypes[0];
-            const state = botState.sessionCreationState.get(userId)!;
-            state.cliType = cliType;
-            state.step = 'select_plugin';
-            botState.sessionCreationState.set(userId, state);
-
-            // Directly show plugin selection
-            const pluginButtons: ButtonBuilder[] = [];
-            if (cliType === 'claude') {
-                pluginButtons.push(
-                    new ButtonBuilder()
-                        .setCustomId('session_plugin_claude-sdk')
-                        .setLabel('Claude SDK')
-                        .setStyle(ButtonStyle.Primary),
-                    new ButtonBuilder()
-                        .setCustomId('session_plugin_tmux')
-                        .setLabel('Interactive (Tmux)')
-                        .setStyle(ButtonStyle.Success),
-                    new ButtonBuilder()
-                        .setCustomId('session_plugin_print')
-                        .setLabel('Basic (Print)')
-                        .setStyle(ButtonStyle.Secondary)
-                );
-            } else if (cliType === 'gemini') {
-                pluginButtons.push(
-                    new ButtonBuilder()
-                        .setCustomId('session_plugin_gemini-sdk')
-                        .setLabel('Gemini SDK')
-                        .setStyle(ButtonStyle.Primary),
-                    new ButtonBuilder()
-                        .setCustomId('session_plugin_tmux')
-                        .setLabel('Interactive (Tmux)')
-                        .setStyle(ButtonStyle.Success),
-                    new ButtonBuilder()
-                        .setCustomId('session_plugin_print')
-                        .setLabel('Basic (Print)')
-                        .setStyle(ButtonStyle.Secondary),
-                    new ButtonBuilder()
-                        .setCustomId('session_plugin_stream')
-                        .setLabel('Stream Fallback')
-                        .setStyle(ButtonStyle.Secondary)
-                );
-            } else if (cliType === 'codex') {
-                pluginButtons.push(
-                    new ButtonBuilder()
-                        .setCustomId('session_plugin_codex-sdk')
-                        .setLabel('Codex SDK')
-                        .setStyle(ButtonStyle.Primary)
-                );
-            }
-
-            const pluginButtonRow = new ActionRowBuilder<ButtonBuilder>()
-                .addComponents(...pluginButtons);
-
-            // Row 2: Navigation buttons
-            const navButtonRow = new ActionRowBuilder<ButtonBuilder>()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId('session_back_cli')
-                        .setLabel('Back')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setEmoji('◀️'),
-                    new ButtonBuilder()
-                        .setCustomId('session_cancel')
-                        .setLabel('Cancel')
-                        .setStyle(ButtonStyle.Danger)
-                        .setEmoji('❌')
-                );
-
-            const embed = new EmbedBuilder()
-                .setColor(0x00FF00)
-                .setTitle('Select Plugin Type')
-                .setDescription(`**Runner:** \`${runner.name}\`\n**CLI:** ${cliType.toUpperCase()}\n\nSelect how you want to interact with the CLI:`)
-                .addFields(
-                    { name: 'Interactive (Tmux)', value: 'Full terminal interaction with approval workflows', inline: false },
-                    { name: 'Basic (Print)', value: 'Simple output logging, less interactive', inline: false },
-                    {
-                        name: cliType === 'gemini' ? 'Gemini SDK' : cliType === 'codex' ? 'Codex SDK' : 'Claude SDK',
-                        value: 'Native SDK integration with persistent session resume support.',
-                        inline: false
-                    }
-                );
-
+        const preferredCli = resolvePreferredCliType(runner, requestedCli, projectContext.projectPath);
+        if (preferredCli.error) {
             await interaction.reply({
-                embeds: [embed],
-                components: [pluginButtonRow, navButtonRow],
+                embeds: [createErrorEmbed('Unsupported Agent', preferredCli.error)],
                 flags: 64
             });
+            return;
+        }
+        if (preferredCli.cliType) {
+            await continueWithSelectedCli(interaction, userId, runner, preferredCli.cliType);
             return;
         }
 

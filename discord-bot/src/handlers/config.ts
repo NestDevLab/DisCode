@@ -273,6 +273,7 @@ export async function handleRunnerConfig(
         autoSync: true,
         thinkingLevel: 'low',
         yoloMode: false,
+        defaultCliType: undefined,
         claudeDefaults: {},
         codexDefaults: {},
         geminiDefaults: {},
@@ -353,6 +354,7 @@ export async function handleRunnerConfig(
         case 'home':
             embed.setDescription('Select a category above to configure runner settings.');
             embed.addFields(
+                { name: 'Default Agent', value: config.defaultCliType?.toUpperCase() || 'Auto', inline: true },
                 { name: 'Auto-Sync', value: config.autoSync ? '✅ Enabled' : '❌ Disabled', inline: true },
                 { name: 'Thread Archive', value: `${config.threadArchiveDays} days`, inline: true },
                 { name: 'Thinking', value: (config.thinkingLevel || 'low').toUpperCase(), inline: true },
@@ -361,6 +363,25 @@ export async function handleRunnerConfig(
                 { name: 'Codex Approval', value: config.codexDefaults?.approvalPolicy || 'on-request', inline: true },
                 { name: 'Gemini Approval', value: config.geminiDefaults?.approvalMode || 'default', inline: true }
             );
+            if (runner.cliTypes.length > 0) {
+                const defaultCliSelect = new StringSelectMenuBuilder()
+                    .setCustomId(`config:${runnerId}:set:defaultCliType`)
+                    .setPlaceholder('Default agent')
+                    .addOptions(
+                        new StringSelectMenuOptionBuilder()
+                            .setLabel('Auto')
+                            .setValue('auto')
+                            .setDescription('Use the first available agent unless a project overrides it.')
+                            .setDefault(!config.defaultCliType),
+                        ...runner.cliTypes.map(cli =>
+                            new StringSelectMenuOptionBuilder()
+                                .setLabel(cli.toUpperCase())
+                                .setValue(cli)
+                                .setDefault(config.defaultCliType === cli)
+                        )
+                    );
+                rows.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(defaultCliSelect));
+            }
             break;
 
         case 'projects':
@@ -819,6 +840,15 @@ export async function handleConfigAction(interaction: any, userId: string, custo
         runner.config.threadArchiveDays = value;
         updated = true;
         sectionAfterUpdate = 'threads';
+    } else if (interaction.isStringSelectMenu() && action === 'set' && param === 'defaultCliType') {
+        const value = interaction.values[0] as 'auto' | 'claude' | 'gemini' | 'codex';
+        if (value === 'auto') {
+            delete runner.config.defaultCliType;
+        } else if (runner.cliTypes.includes(value)) {
+            runner.config.defaultCliType = value;
+        }
+        updated = true;
+        sectionAfterUpdate = 'home';
     }
 
     if (updated) {

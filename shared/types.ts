@@ -25,6 +25,7 @@ export interface RunnerConfig {
   autoSync?: boolean;
   thinkingLevel?: 'high' | 'medium' | 'low';
   yoloMode?: boolean; // If true, auto-approve commands
+  defaultCliType?: 'claude' | 'gemini' | 'codex';
   claudeDefaults?: Record<string, any>;
   codexDefaults?: Record<string, any>;
   geminiDefaults?: Record<string, any>;
