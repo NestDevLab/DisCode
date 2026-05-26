@@ -250,7 +250,8 @@ export async function handleWebSocketMessage(
             await handleCodexThreadListRequest(message.data as any, {
                 wsManager: deps.wsManager,
                 cliPaths: deps.cliPaths,
-                pluginManager: deps.pluginManager
+                pluginManager: deps.pluginManager,
+                defaultWorkspace: deps.config.defaultWorkspace
             });
             break;
         }

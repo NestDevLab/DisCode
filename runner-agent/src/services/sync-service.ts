@@ -53,6 +53,7 @@ export class RunnerSyncService extends EventEmitter {
     private codexPollInitialized = false;
     private readonly codexPollIntervalMs = parseInt(process.env.DISCODE_CODEX_SYNC_POLL_MS || '15000');
     private codexThreadUpdatedAt = new Map<string, number>();
+    private allowedProjectPaths: Set<string> | null;
     private syncStatus: {
         state: 'idle' | 'syncing' | 'error';
         lastSyncAt?: string;
@@ -70,12 +71,16 @@ export class RunnerSyncService extends EventEmitter {
     };
     private maxSyncChunkBytes = parseInt(process.env.DISCODE_SYNC_MAX_BYTES || String(2 * 1024 * 1024));
 
-    constructor(wsManager: WebSocketManager, options?: { codexPath?: string | null }) {
+    constructor(wsManager: WebSocketManager, options?: { codexPath?: string | null; allowedProjectPaths?: string[] }) {
         super();
         this.wsManager = wsManager;
         this.watcher = new SessionWatcher();
         this.codexPath = options?.codexPath || null;
         this.codexClient = new CodexSyncClient(this.codexPath);
+        const allowedPaths = (options?.allowedProjectPaths || [])
+            .map(projectPath => normalizeProjectPath(projectPath))
+            .filter(Boolean);
+        this.allowedProjectPaths = allowedPaths.length > 0 ? new Set(allowedPaths) : null;
 
         // Listen for watcher events
         this.watcher.on('session_new', (entry: SessionEntry) => {
@@ -103,6 +108,11 @@ export class RunnerSyncService extends EventEmitter {
         void this.pollCodexThreads();
     }
 
+    private isProjectAllowed(projectPath: string): boolean {
+        if (!this.allowedProjectPaths) return true;
+        return this.allowedProjectPaths.has(normalizeProjectPath(projectPath));
+    }
+
     private async pollCodexThreads(): Promise<void> {
         if (!this.codexPath) return;
         if (this.codexPollInFlight) return;
@@ -114,6 +124,8 @@ export class RunnerSyncService extends EventEmitter {
 
             if (!this.codexPollInitialized) {
                 for (const thread of threads) {
+                    const record = normalizeThreadRecord(thread);
+                    if (!record || !this.isProjectAllowed(record.projectPath)) continue;
                     const updatedAt = typeof thread.updatedAt === 'number'
                         ? thread.updatedAt
                         : (typeof thread.createdAt === 'number' ? thread.createdAt : 0);
@@ -126,6 +138,7 @@ export class RunnerSyncService extends EventEmitter {
             for (const thread of threads) {
                 const record = normalizeThreadRecord(thread);
                 if (!record) continue;
+                if (!this.isProjectAllowed(record.projectPath)) continue;
 
                 currentIds.add(record.sessionId);
                 const sessionKey = toSyncSessionKey(record.sessionId, 'codex');
@@ -391,6 +404,7 @@ export class RunnerSyncService extends EventEmitter {
 
             for (const project of claudeProjects) {
                 const normalizedPath = normalizeProjectPath(project.path);
+                if (!this.isProjectAllowed(normalizedPath)) continue;
                 knownProjectPaths.add(normalizedPath);
                 mergedProjects.set(normalizedPath, {
                     path: normalizedPath,
@@ -400,6 +414,7 @@ export class RunnerSyncService extends EventEmitter {
             }
 
             for (const [projectPath, sessionCount] of codexProjects.entries()) {
+                if (!this.isProjectAllowed(projectPath)) continue;
                 knownProjectPaths.add(projectPath);
                 const existing = mergedProjects.get(projectPath);
                 if (existing) {
@@ -494,6 +509,33 @@ export class RunnerSyncService extends EventEmitter {
     private async runSyncSessions(projectPath: string, requestId?: string): Promise<void> {
         const startedAt = new Date();
         const normalizedProjectPath = normalizeProjectPath(projectPath);
+
+        if (!this.isProjectAllowed(normalizedProjectPath)) {
+            console.log(`[SyncService] Skipping sync_sessions for disallowed project ${normalizedProjectPath}`);
+            this.wsManager.send({
+                type: 'sync_sessions_response',
+                data: {
+                    runnerId: this.wsManager.runnerId,
+                    projectPath: normalizedProjectPath,
+                    requestId,
+                    sessions: [],
+                    syncFormatVersion: 2
+                }
+            } as SyncSessionsResponseMessage);
+            this.wsManager.send({
+                type: 'sync_sessions_complete',
+                data: {
+                    runnerId: this.wsManager.runnerId,
+                    projectPath: normalizedProjectPath,
+                    requestId,
+                    status: 'success',
+                    startedAt: startedAt.toISOString(),
+                    completedAt: new Date().toISOString(),
+                    sessionCount: 0
+                }
+            } as SyncSessionsCompleteMessage);
+            return;
+        }
 
         const projectStatus = this.syncStatus.projects.get(normalizedProjectPath) || {
             projectPath: normalizedProjectPath,
@@ -767,7 +809,7 @@ let syncServiceInstance: RunnerSyncService | null = null;
 
 export function getSyncService(
     wsManager?: WebSocketManager,
-    options?: { codexPath?: string | null }
+    options?: { codexPath?: string | null; allowedProjectPaths?: string[] }
 ): RunnerSyncService | null {
     if (!syncServiceInstance && wsManager) {
         syncServiceInstance = new RunnerSyncService(wsManager, options);
