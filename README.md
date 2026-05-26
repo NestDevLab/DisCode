@@ -10,6 +10,7 @@ Control Claude Code, Gemini CLI, and Tmux terminals through Discord with interac
 - **Interactive Approvals**: Approve or deny tool usage requests through Discord buttons
 - **Terminal Watching**: Monitor and interact with tmux sessions in real-time
 - **Multi-Runner Support**: Manage multiple machines from a single Discord server
+- **Codex Runner Support**: Create Codex SDK sessions on remote runners, including OpenClaw workspaces
 - **Agent Skills**: Enable CLI agents to control Discord (send messages, rename channels)
 - **Private Sessions**: Each CLI session gets its own private thread
 - **Secure Authentication**: Token-based runner registration
@@ -41,7 +42,7 @@ TaskServer provides a simple web dashboard to manage long-running scripts (like 
                      │ HTTP
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ CLI Plugin (Claude Code or Gemini CLI)                     │
+│ CLI Plugin (Claude Code, Codex, or Gemini CLI)             │
 │ - Hooks to intercept tool usage                             │
 │ - Sends approval requests to Runner Agent                  │
 │ - Respects allow/deny decisions                             │
@@ -99,9 +100,11 @@ Edit `.env`:
 DISCODE_TOKEN=token_from_discord_bot
 DISCODE_BOT_URL=ws://localhost:8080
 DISCODE_RUNNER_NAME=my-machine
-DISCODE_CLI_TYPE=claude  # or 'gemini'
+DISCODE_CLI_TYPES=claude  # or 'gemini' / 'codex'
 DISCODE_HTTP_PORT=3000
 ```
+
+For a Codex/OpenClaw runner, see `docs/openclaw-codex-runner.md`.
 
 ### 3. Start Discord Bot
 
