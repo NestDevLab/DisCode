@@ -90,10 +90,10 @@ export class SyncStateManager {
      * Resolve persisted session record from storage
      */
     resolvePersistedSessionRecord(
-        sessionsRecord: Record<string, { threadId: string; projectPath: string; lastSync?: string; cliType?: 'claude' | 'codex' | 'gemini' }> | undefined,
+        sessionsRecord: Record<string, { threadId: string; projectPath: string; lastSync?: string; cliType?: 'claude' | 'codex' | 'gemini'; messageCount?: number }> | undefined,
         sessionId: string,
         cliType: SyncedCliType
-    ): { key: string; data: { threadId: string; projectPath: string; lastSync?: string; cliType?: 'claude' | 'codex' | 'gemini' } } | null {
+    ): { key: string; data: { threadId: string; projectPath: string; lastSync?: string; cliType?: 'claude' | 'codex' | 'gemini'; messageCount?: number } } | null {
         if (!sessionsRecord) return null;
         const preferredKey = this.toSessionKey(sessionId, cliType);
         const preferred = sessionsRecord[preferredKey];

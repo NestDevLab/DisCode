@@ -96,11 +96,17 @@ export class SessionSyncService extends EventEmitter {
     }
 
     private resolvePersistedSessionRecord(
-        sessionsRecord: Record<string, { threadId: string; projectPath: string; lastSync?: string; cliType?: 'claude' | 'codex' | 'gemini' }> | undefined,
+        sessionsRecord: Record<string, { threadId: string; projectPath: string; lastSync?: string; cliType?: 'claude' | 'codex' | 'gemini'; messageCount?: number }> | undefined,
         sessionId: string,
         cliType: SyncedCliType
-    ): { key: string; data: { threadId: string; projectPath: string; lastSync?: string; cliType?: 'claude' | 'codex' | 'gemini' } } | null {
+    ): { key: string; data: { threadId: string; projectPath: string; lastSync?: string; cliType?: 'claude' | 'codex' | 'gemini'; messageCount?: number } } | null {
         return this.stateManager.resolvePersistedSessionRecord(sessionsRecord, sessionId, cliType);
+    }
+
+    private resolveSessionCreatedAt(session: any): Date {
+        const rawTimestamp = session?.created ?? session?.createdAt ?? session?.updated ?? session?.updatedAt;
+        const timestamp = rawTimestamp ? new Date(rawTimestamp) : new Date();
+        return Number.isNaN(timestamp.getTime()) ? new Date() : timestamp;
     }
 
     private ensureRunnerSyncStatus(runnerId: string): RunnerSyncStatus {
@@ -245,7 +251,7 @@ export class SessionSyncService extends EventEmitter {
                                             firstPrompt: 'Restored Session',
                                             status: 'idle',
                                             lastSyncedAt: data.lastSync ? new Date(data.lastSync) : new Date(0),
-                                            messageCount: 0
+                                            messageCount: typeof data.messageCount === 'number' ? data.messageCount : 0
                                         });
                                     }
                                 }
@@ -579,6 +585,7 @@ export class SessionSyncService extends EventEmitter {
                 }
 
                 if (thread) {
+                    const createdAt = this.resolveSessionCreatedAt(session);
                     const embed = new EmbedBuilder()
                         .setTitle('Session Synced from VS Code')
                         .setDescription(`This ${cliType.toUpperCase()} session was synced to Discord.`)
@@ -589,7 +596,7 @@ export class SessionSyncService extends EventEmitter {
                             { name: 'Messages', value: `${session.messageCount}`, inline: true }
                         )
                         .setColor(0x5865F2)
-                        .setTimestamp(new Date(session.created));
+                        .setTimestamp(createdAt);
 
                     try {
                         await thread.send({ embeds: [embed] });
@@ -610,8 +617,9 @@ export class SessionSyncService extends EventEmitter {
                                     [sessionKey]: {
                                         threadId: thread.id,
                                         projectPath: normalizedProjectPath,
-                                        lastSync: new Date(session.created).toISOString(),
-                                        cliType
+                                        lastSync: createdAt.toISOString(),
+                                        cliType,
+                                        messageCount: session.messageCount ?? (messages ? messages.length : 0)
                                     }
                                 }
                             }
@@ -822,7 +830,8 @@ export class SessionSyncService extends EventEmitter {
                                     threadId: existingSync.threadId!,
                                     projectPath,
                                     lastSync: existingSync.lastSyncedAt.toISOString(),
-                                    cliType: existingSync.cliType
+                                    cliType: existingSync.cliType,
+                                    messageCount: existingSync.messageCount
                                 }
                             }
                         }
