@@ -18,6 +18,18 @@ function pluginForCli(cliType: 'claude' | 'codex' | 'gemini'): 'claude-sdk' | 'c
     return 'claude-sdk';
 }
 
+function parseExplicitSyncedSessionId(sessionId: string): {
+    externalSessionId: string;
+    cliType?: 'claude' | 'codex' | 'gemini';
+} {
+    const match = /^(claude|codex|gemini):(.+)$/.exec(sessionId);
+    if (!match) return { externalSessionId: sessionId };
+    return {
+        cliType: match[1] as 'claude' | 'codex' | 'gemini',
+        externalSessionId: match[2]
+    };
+}
+
 export async function handleResumeSession(interaction: ChatInputCommandInteraction, userId: string): Promise<void> {
     await interaction.deferReply();
 
@@ -103,13 +115,44 @@ export async function handleResumeSession(interaction: ChatInputCommandInteracti
                 ? 'gemini'
                 : 'claude';
         } else {
-             // B. Check Sync Service (by finding it in all projects)
-             // This is expensive if we don't have a lookup map, but let's assume valid ID
-             // For now, we support resuming ONLY if we can find the context
-             await interaction.editReply({
-                 embeds: [createErrorEmbed('Not Found', 'Could not find session to resume. Make sure syncing is active or you are in a valid thread.')]
-             });
-             return;
+            // B. Check Sync Service for externally synced sessions.
+            const sessionSync = getSessionSyncService();
+            const explicit = parseExplicitSyncedSessionId(targetSessionId);
+            let syncEntry = null;
+
+            if (sessionSync) {
+                for (const candidateRunner of Object.values(storage.data.runners)) {
+                    if (!storage.canUserAccessRunner(userId, candidateRunner.runnerId)) continue;
+                    const found = sessionSync.getSessionByExternalSessionId(
+                        candidateRunner.runnerId,
+                        explicit.externalSessionId,
+                        explicit.cliType
+                    );
+                    if (found) {
+                        syncEntry = found;
+                        break;
+                    }
+                }
+            }
+
+            if (syncEntry) {
+                resumeSource = 'synced_explicit';
+                runnerId = syncEntry.runnerId;
+                projectPath = syncEntry.projectPath;
+                resolvedSessionId = syncEntry.session.externalSessionId;
+                resumeSessionIdForCli = syncEntry.session.externalSessionId;
+                targetThreadId = syncEntry.session.threadId || targetThreadId;
+                resolvedCliType = syncEntry.session.cliType === 'codex'
+                    ? 'codex'
+                    : syncEntry.session.cliType === 'gemini'
+                    ? 'gemini'
+                    : 'claude';
+            } else {
+                await interaction.editReply({
+                    embeds: [createErrorEmbed('Not Found', 'Could not find session to resume. Make sure syncing is active or you are in a valid thread.')]
+                });
+                return;
+            }
         }
     } else {
         await interaction.editReply({

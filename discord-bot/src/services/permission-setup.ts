@@ -18,6 +18,7 @@ export interface RunnerPermissionInfo {
 
 export interface PermissionOverwriteData {
     id: string;
+    type: OverwriteType;
     deny?: string[];
     allow?: string[];
 }
@@ -38,6 +39,7 @@ export function buildChannelPermissionOverwrites(
     const overwrites: PermissionOverwriteData[] = [
         {
             id: everyoneRoleId,
+            type: OverwriteType.Role,
             deny: ['ViewChannel', 'ReadMessageHistory', 'SendMessages']
         }
     ];
@@ -46,6 +48,7 @@ export function buildChannelPermissionOverwrites(
     if (runner.ownerId) {
         overwrites.push({
             id: runner.ownerId,
+            type: OverwriteType.Member,
             allow: ['ViewChannel', 'ReadMessageHistory', 'SendMessages', 'CreatePublicThreads', 'CreatePrivateThreads', 'ManageThreads', 'SendMessagesInThreads']
         });
     }
@@ -55,6 +58,7 @@ export function buildChannelPermissionOverwrites(
         if (userId && userId !== runner.ownerId) {
             overwrites.push({
                 id: userId,
+                type: OverwriteType.Member,
                 allow: ['ViewChannel', 'ReadMessageHistory', 'SendMessages', 'CreatePublicThreads', 'CreatePrivateThreads', 'SendMessagesInThreads']
             });
         }

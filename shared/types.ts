@@ -98,7 +98,7 @@ export interface RunnerInfo {
     };
     projects?: Record<string, { channelId: string; lastSync?: string; dashboardMessageId?: string }>;
     // Persist session->thread mapping to prevent duplicates on restart
-    sessions?: Record<string, { threadId: string; projectPath: string; lastSync?: string; cliType?: 'claude' | 'codex' | 'gemini' }>;
+    sessions?: Record<string, { threadId: string; projectPath: string; lastSync?: string; cliType?: 'claude' | 'codex' | 'gemini'; messageCount?: number }>;
   };
 }
 
