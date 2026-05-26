@@ -69,6 +69,31 @@ function applyDefaultRunnerConfig(runner: RunnerInfo): void {
     if (runner.config.presets === undefined) runner.config.presets = {};
 }
 
+function applyTokenRunnerConfig(runner: RunnerInfo, tokenInfo: any): void {
+    const tokenConfig = tokenInfo?.config;
+    if (!tokenConfig || typeof tokenConfig !== 'object') return;
+    runner.config = {
+        ...(runner.config || {}),
+        ...tokenConfig,
+        claudeDefaults: {
+            ...(runner.config?.claudeDefaults || {}),
+            ...(tokenConfig.claudeDefaults || {})
+        },
+        codexDefaults: {
+            ...(runner.config?.codexDefaults || {}),
+            ...(tokenConfig.codexDefaults || {})
+        },
+        geminiDefaults: {
+            ...(runner.config?.geminiDefaults || {}),
+            ...(tokenConfig.geminiDefaults || {})
+        },
+        presets: {
+            ...(runner.config?.presets || {}),
+            ...(tokenConfig.presets || {})
+        }
+    };
+}
+
 function mergeClaudeDefaultsPreservingPermissionMode(
     currentDefaults: Record<string, any> | undefined,
     incomingDefaults: Record<string, any>
@@ -671,6 +696,7 @@ async function handleRegister(ws: any, data: any): Promise<void> {
             tokenInUse.config.geminiDefaults = { ...data.geminiDefaults };
         }
         applyDefaultRunnerConfig(tokenInUse);
+        applyTokenRunnerConfig(tokenInUse, tokenInfo);
 
         const categoryManager = getCategoryManager();
         if (categoryManager) {
@@ -765,6 +791,7 @@ async function handleRegister(ws: any, data: any): Promise<void> {
             existingRunner.config.geminiDefaults = { ...data.geminiDefaults };
         }
         applyDefaultRunnerConfig(existingRunner);
+        applyTokenRunnerConfig(existingRunner, tokenInfo);
 
         const categoryManager = getCategoryManager();
         if (categoryManager) {
@@ -818,6 +845,7 @@ async function handleRegister(ws: any, data: any): Promise<void> {
             }
         };
         applyDefaultRunnerConfig(newRunner);
+        applyTokenRunnerConfig(newRunner, tokenInfo);
 
         const categoryManager = getCategoryManager();
         if (categoryManager) {
