@@ -183,6 +183,14 @@ export async function handleSessionStart(
             console.log(`[SessionStart] Installed skills for ${data.cliType} SDK session in ${cwd}`);
         }
 
+        sessionMetadata.set(data.sessionId, {
+            sessionId: data.sessionId,
+            cliType: data.cliType,
+            plugin: data.plugin,
+            folderPath: data.folderPath,
+            runnerId: data.runnerId
+        });
+
         const session = await pluginManager.createSession({
             cliPath,
             cwd,

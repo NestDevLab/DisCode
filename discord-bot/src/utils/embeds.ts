@@ -203,10 +203,14 @@ export function createOutputEmbed(outputType: string, content: string): EmbedBui
         ? formatContentWithTables(content)
         : content;
 
+    const safeContent = formattedContent.trim().length > 0
+        ? formattedContent
+        : '(no output)';
+
     return new EmbedBuilder()
         .setColor(color)
         .setTitle(title)
-        .setDescription(formattedContent.substring(0, 4096))
+        .setDescription(safeContent.substring(0, 4096))
         .setTimestamp();
 }
 
