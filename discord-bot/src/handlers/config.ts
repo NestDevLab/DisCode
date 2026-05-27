@@ -22,6 +22,8 @@ import { fetchRunnerModels, AUTO_MODEL_VALUE } from '../utils/models.js';
 import * as botState from '../state.js';
 import type { RunnerConfig } from '../../../shared/types.js';
 
+type RunnerThinkingLevel = 'off' | 'low' | 'medium' | 'high' | 'auto' | 'default_on';
+
 type ConfigSection =
     | 'main'
     | 'home'
@@ -40,6 +42,11 @@ const TOP_NAV_PAGES: ReadonlyArray<ReadonlyArray<ConfigSection>> = [
     ['home', 'projects', 'threads', 'claude'],
     ['codex', 'gemini', 'advanced']
 ];
+
+function formatThinkingLevel(level?: string): string {
+    if (!level || level === 'default_on' || level === 'auto') return 'Default';
+    return level === 'off' ? 'OFF' : level.toUpperCase();
+}
 
 function normalizeSection(section: ConfigSection): ConfigSection {
     return section === 'main' ? 'home' : section;
@@ -271,7 +278,7 @@ export async function handleRunnerConfig(
     const config: RunnerConfig = runner.config || {
         threadArchiveDays: 3,
         autoSync: true,
-        thinkingLevel: 'low',
+        thinkingLevel: 'default_on',
         yoloMode: false,
         claudeDefaults: {},
         codexDefaults: {},
@@ -355,7 +362,7 @@ export async function handleRunnerConfig(
             embed.addFields(
                 { name: 'Auto-Sync', value: config.autoSync ? '✅ Enabled' : '❌ Disabled', inline: true },
                 { name: 'Thread Archive', value: `${config.threadArchiveDays} days`, inline: true },
-                { name: 'Thinking', value: (config.thinkingLevel || 'low').toUpperCase(), inline: true },
+                { name: 'Thinking', value: formatThinkingLevel(config.thinkingLevel), inline: true },
                 { name: 'Claude Approval', value: config.claudeDefaults?.permissionMode || 'manual', inline: true },
                 { name: 'Claude Edit Mode', value: config.claudeDefaults?.editAcceptMode || 'default', inline: true },
                 { name: 'Codex Approval', value: config.codexDefaults?.approvalPolicy || 'on-request', inline: true },
@@ -443,7 +450,7 @@ export async function handleRunnerConfig(
                 { name: 'Max Budget', value: claudeDefaults.maxBudgetUsd ? `$${claudeDefaults.maxBudgetUsd}` : 'Default', inline: true },
                 { name: 'Approval Mode', value: effectivePermMode, inline: true },
                 { name: 'Edit Mode', value: effectiveEditMode, inline: true },
-                { name: 'Thinking Level', value: (config.thinkingLevel || 'low').toUpperCase(), inline: true }
+                { name: 'Thinking Level', value: formatThinkingLevel(config.thinkingLevel), inline: true }
             );
             if (activeSection === 'claude-2') {
                 embed.addFields({
@@ -486,9 +493,13 @@ export async function handleRunnerConfig(
                 ));
             } else {
                 rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(
-                    new ButtonBuilder().setCustomId(`config:${runnerId}:set:thinkingLevel:low`).setLabel('Low').setStyle(config.thinkingLevel === 'low' ? ButtonStyle.Primary : ButtonStyle.Secondary),
-                    new ButtonBuilder().setCustomId(`config:${runnerId}:set:thinkingLevel:medium`).setLabel('Medium').setStyle(config.thinkingLevel === 'medium' ? ButtonStyle.Primary : ButtonStyle.Secondary),
-                    new ButtonBuilder().setCustomId(`config:${runnerId}:set:thinkingLevel:high`).setLabel('High').setStyle(config.thinkingLevel === 'high' ? ButtonStyle.Primary : ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId(`config:${runnerId}:set:thinkingLevel:default_on`).setLabel('Think Default').setStyle((config.thinkingLevel || 'default_on') === 'default_on' ? ButtonStyle.Primary : ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId(`config:${runnerId}:set:thinkingLevel:off`).setLabel('Think Off').setStyle(config.thinkingLevel === 'off' ? ButtonStyle.Primary : ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId(`config:${runnerId}:set:thinkingLevel:low`).setLabel('Think Low').setStyle(config.thinkingLevel === 'low' ? ButtonStyle.Primary : ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId(`config:${runnerId}:set:thinkingLevel:medium`).setLabel('Think Med').setStyle(config.thinkingLevel === 'medium' ? ButtonStyle.Primary : ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId(`config:${runnerId}:set:thinkingLevel:high`).setLabel('Think High').setStyle(config.thinkingLevel === 'high' ? ButtonStyle.Primary : ButtonStyle.Secondary)
+                ));
+                rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(
                     new ButtonBuilder().setCustomId(`config:${runnerId}:toggle:yoloMode`).setLabel(config.yoloMode ? 'YOLO ON' : 'YOLO OFF').setStyle(config.yoloMode ? ButtonStyle.Danger : ButtonStyle.Secondary)
                 ));
                 rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -769,7 +780,7 @@ export async function handleConfigAction(interaction: any, userId: string, custo
         if (param === 'archiveDays') {
             sectionAfterUpdate = 'threads';
         } else if (param.startsWith('thinkingLevel')) {
-            const level = param.split(':')[1] as 'low'|'medium'|'high';
+            const level = param.split(':')[1] as RunnerThinkingLevel;
             runner.config.thinkingLevel = level;
             updated = true;
             sectionAfterUpdate = 'claude-3';

@@ -971,9 +971,25 @@ class ClaudeSDKSession extends EventEmitter implements PluginSession {
     }
 
     async setMaxThinkingTokens(maxTokens: number): Promise<void> {
+        this.config.options = this.config.options || {};
+        this.config.options.maxThinkingTokens = maxTokens;
         await this.client.setMaxThinkingTokens(maxTokens);
         this.plugin.emit('metadata', {
             sessionId: this.sessionId,
+            timestamp: new Date()
+        });
+    }
+
+    async setThinkingLevel(level: 'default' | 'off' | 'low' | 'medium' | 'high' | 'xhigh'): Promise<void> {
+        this.config.options = this.config.options || {};
+        if (level === 'default') {
+            delete this.config.options.thinkingLevel;
+        } else if (level !== 'xhigh') {
+            this.config.options.thinkingLevel = level;
+        }
+        this.plugin.emit('metadata', {
+            sessionId: this.sessionId,
+            mode: `thinking:${level}`,
             timestamp: new Date()
         });
     }

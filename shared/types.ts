@@ -23,7 +23,7 @@ export interface TokenInfo {
 export interface RunnerConfig {
   threadArchiveDays?: number; // 3, 7, 30, or -1 (never)
   autoSync?: boolean;
-  thinkingLevel?: 'high' | 'medium' | 'low';
+  thinkingLevel?: 'off' | 'low' | 'medium' | 'high' | 'auto' | 'default_on';
   yoloMode?: boolean; // If true, auto-approve commands
   claudeDefaults?: Record<string, any>;
   codexDefaults?: Record<string, any>;
@@ -46,7 +46,7 @@ export interface ProjectConfig {
   geminiDefaults?: Record<string, any>;
 
   // Thinking and behavior
-  thinkingLevel?: 'high' | 'medium' | 'low';
+  thinkingLevel?: 'off' | 'low' | 'medium' | 'high' | 'auto' | 'default_on';
   model?: string;
   maxTurns?: number;
   maxThinkingTokens?: number;

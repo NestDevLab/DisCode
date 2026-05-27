@@ -13,7 +13,7 @@ export interface SessionControlHandlerDeps {
 export interface SessionControlData {
     sessionId: string;
     runnerId: string;
-    action: 'set_model' | 'set_permission_mode' | 'set_approval_mode' | 'set_max_thinking_tokens';
+    action: 'set_model' | 'set_permission_mode' | 'set_approval_mode' | 'set_max_thinking_tokens' | 'set_thinking_level';
     value: string | number;
 }
 
@@ -68,6 +68,16 @@ export async function handleSessionControl(
                 console.log(`[SessionControl] Set max thinking tokens to ${numeric} for ${sessionId}`);
             } else {
                 console.warn(`[SessionControl] setMaxThinkingTokens not supported for ${sessionId}`);
+            }
+            return;
+        }
+
+        if (action === 'set_thinking_level') {
+            if ('setThinkingLevel' in session && typeof (session as any).setThinkingLevel === 'function') {
+                await (session as any).setThinkingLevel(value as 'default' | 'off' | 'low' | 'medium' | 'high' | 'xhigh');
+                console.log(`[SessionControl] Set thinking level to ${value} for ${sessionId}`);
+            } else {
+                console.warn(`[SessionControl] setThinkingLevel not supported for ${sessionId}`);
             }
         }
     } catch (error) {
