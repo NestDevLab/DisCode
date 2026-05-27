@@ -11,7 +11,8 @@ import {
     PluginSession,
     SessionConfig,
     SessionStatus,
-    OutputEvent
+    OutputEvent,
+    ThinkingLevelControl
 } from './base.js';
 
 // ============================================================================
@@ -202,6 +203,7 @@ export abstract class BaseSDKSession extends EventEmitter implements PluginSessi
     async setApprovalMode?(_mode: 'manual' | 'autoSafe' | 'auto'): Promise<void>;
     async setModel?(_model: string): Promise<void>;
     async setMaxThinkingTokens?(_maxTokens: number): Promise<void>;
+    async setThinkingLevel?(_level: ThinkingLevelControl): Promise<void>;
     async sendPermissionDecision?(_requestId: string, _decision: {
         behavior: 'allow' | 'deny';
         message?: string;

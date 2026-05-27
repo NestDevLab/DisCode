@@ -16,6 +16,7 @@ import { createErrorEmbed } from '../utils/embeds.js';
 import { handleSessionReview } from './buttons.js';
 import { handleTellClaudeModal } from './permission-buttons.js';
 import { permissionStateStore } from '../permissions/state-store.js';
+import { handleLiveSessionModalSubmit } from './session-dashboard.js';
 
 /**
  * Main modal submit dispatcher
@@ -63,6 +64,15 @@ export async function handleModalSubmit(interaction: any): Promise<void> {
     // Handle session settings modals
     if (customId.startsWith('session_settings_modal_submit:')) {
         await handleSessionSettingsModalSubmit(interaction, userId, customId);
+        return;
+    }
+
+    // Handle live session dashboard modals
+    if (
+        customId.startsWith('live_session_model_modal:') ||
+        customId.startsWith('live_session_thinking_tokens_modal:')
+    ) {
+        await handleLiveSessionModalSubmit(interaction, userId, customId);
         return;
     }
 }

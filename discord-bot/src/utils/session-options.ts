@@ -144,7 +144,12 @@ export function buildSessionStartOptions(
         delete options.permissionMode;
     }
 
-    if (options.thinkingLevel === undefined && runner?.config?.thinkingLevel) {
+    if (
+        options.thinkingLevel === undefined &&
+        runner?.config?.thinkingLevel &&
+        runner.config.thinkingLevel !== 'default_on' &&
+        runner.config.thinkingLevel !== 'auto'
+    ) {
         options.thinkingLevel = runner.config.thinkingLevel;
     }
 

@@ -392,7 +392,7 @@ export async function postProjectDashboard(
         const runnerPermMode = runnerConfig.claudeDefaults?.permissionMode ||
             (runnerConfig.yoloMode ? 'yolo' : 'manual');
         const permMode = projectConfig.permissionMode || runnerPermMode;
-        const thinkLevel = projectConfig.thinkingLevel || runnerConfig.thinkingLevel || 'low';
+        const thinkLevel = projectConfig.thinkingLevel || runnerConfig.thinkingLevel || 'default_on';
         const defaultCli = projectConfig.defaultCliType || runner?.cliTypes?.[0] || 'claude';
         const autoSpawn = projectConfig.autoSpawnEnabled !== false ? 'Enabled' : 'Disabled';
 

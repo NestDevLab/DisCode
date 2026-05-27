@@ -18,6 +18,11 @@ import type { ProjectConfig } from '../../../shared/types.js';
 
 type ConfigSection = 'main' | 'reset';
 
+function formatThinkingLevel(level?: string): string {
+    if (!level || level === 'default_on' || level === 'auto') return 'Default';
+    return level === 'off' ? 'OFF' : level.toUpperCase();
+}
+
 async function editOrUpdateInteraction(interaction: any, payload: any): Promise<void> {
     if (interaction.deferred || interaction.replied) {
         await interaction.editReply(payload);
@@ -170,11 +175,17 @@ export async function showProjectConfig(
         // Thinking Level
         const thinkingRow = new ActionRowBuilder<ButtonBuilder>()
             .addComponents(
-                ...(['low', 'medium', 'high'] as const).map(level =>
+                ...([
+                    ['default_on', 'Think Default'],
+                    ['off', 'Think Off'],
+                    ['low', 'Think Low'],
+                    ['medium', 'Think Med'],
+                    ['high', 'Think High']
+                ] as const).map(([level, label]) =>
                     new ButtonBuilder()
                         .setCustomId(`project_config:${runnerId}:${encodeURIComponent(projectPath)}:set:thinkingLevel:${level}`)
-                        .setLabel(level.charAt(0).toUpperCase() + level.slice(1))
-                        .setStyle((projectConfig.thinkingLevel || runnerConfig.thinkingLevel || 'low') === level ? ButtonStyle.Primary : ButtonStyle.Secondary)
+                        .setLabel(label)
+                        .setStyle((projectConfig.thinkingLevel || runnerConfig.thinkingLevel || 'default_on') === level ? ButtonStyle.Primary : ButtonStyle.Secondary)
                 )
             );
         rows.push(thinkingRow);
@@ -199,7 +210,7 @@ export async function showProjectConfig(
         embed.addFields(
             { name: 'Permission Mode', value: effectivePermMode + (projectConfig.permissionMode ? '' : ' _inherited_'), inline: true },
             { name: 'Default CLI', value: effectiveCli.toUpperCase() + (projectConfig.defaultCliType ? '' : ' _inherited_'), inline: true },
-            { name: 'Thinking Level', value: (projectConfig.thinkingLevel || runnerConfig.thinkingLevel || 'low') + (projectConfig.thinkingLevel ? '' : ' _inherited_'), inline: true },
+            { name: 'Thinking Level', value: formatThinkingLevel(projectConfig.thinkingLevel || runnerConfig.thinkingLevel) + (projectConfig.thinkingLevel ? '' : ' _inherited_'), inline: true },
             { name: 'Auto-Spawn', value: autoSpawnEnabled ? 'Enabled' : 'Disabled', inline: true },
             { name: 'Status', value: hasOverrides ? 'Using project overrides' : 'Inheriting from runner', inline: false }
         );

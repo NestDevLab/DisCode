@@ -290,6 +290,22 @@ class CodexSDKSession extends BaseSDKSession {
     this.emitMetadata({ mode: `approval:${mode}` });
   }
 
+  async setModel(model: string): Promise<void> {
+    this.config.options = this.config.options || {};
+    this.config.options.model = model;
+    this.emitMetadata({ model });
+  }
+
+  async setThinkingLevel(level: 'default' | 'off' | 'low' | 'medium' | 'high' | 'xhigh'): Promise<void> {
+    this.config.options = this.config.options || {};
+    if (level === 'default') {
+      delete this.config.options.reasoningEffort;
+    } else {
+      this.config.options.reasoningEffort = level === 'off' ? 'none' : level;
+    }
+    this.emitMetadata({ mode: `thinking:${level}` });
+  }
+
   async interrupt(): Promise<void> {
     if (this.threadId && this.activeTurnId) {
       try {
