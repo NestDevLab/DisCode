@@ -106,17 +106,17 @@ export class OutputThrottler {
 // Message Queue - Manages sequential message sending
 // ============================================================================
 
-export interface QueuedMessage {
-    message: string;
+export interface QueuedMessage<T = string> {
+    message: T;
     resolve: () => void;
     reject: (err: Error) => void;
 }
 
-export class MessageQueue {
-    private queue: QueuedMessage[] = [];
+export class MessageQueue<T = string> {
+    private queue: QueuedMessage<T>[] = [];
     private sending = false;
 
-    enqueue(message: string): Promise<void> {
+    enqueue(message: T): Promise<void> {
         return new Promise((resolve, reject) => {
             this.queue.push({ message, resolve, reject });
             this.drain();
@@ -142,7 +142,7 @@ export class MessageQueue {
         }
     }
 
-    constructor(private readonly sender: (message: string) => Promise<void>) {}
+    constructor(private readonly sender: (message: T) => Promise<void>) {}
 
     isActive(): boolean {
         return this.sending;
@@ -198,6 +198,7 @@ export abstract class BaseSDKSession extends EventEmitter implements PluginSessi
 
     // Optional methods with default implementations
     async sendMessageWithImages?(_text: string, _images: Array<{ data: string; mediaType: string }>): Promise<void>;
+    async sendMessageWithLocalImages?(_text: string, _images: Array<{ path: string; mediaType: string }>): Promise<void>;
     async setPermissionMode?(_mode: 'default' | 'acceptEdits'): Promise<void>;
     async setApprovalMode?(_mode: 'manual' | 'autoSafe' | 'auto'): Promise<void>;
     async setModel?(_model: string): Promise<void>;
