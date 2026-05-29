@@ -9,6 +9,7 @@
 import * as botState from '../state.js';
 import { storage } from '../storage.js';
 import { getCategoryManager } from '../services/category-manager.js';
+import { getSessionSyncService } from '../services/session-sync.js';
 
 // ---------------------------------------------------------------------------
 // Utility Helpers
@@ -171,17 +172,45 @@ export async function getProjectPathFromContext(interaction: any): Promise<strin
     return projectInfo?.projectPath;
 }
 
+export async function getReusableSessionThreadIdFromContext(interaction: any): Promise<string | undefined> {
+    let channel = interaction.channel;
+    if (!channel && interaction.channelId) {
+        try {
+            channel = await interaction.client.channels.fetch(interaction.channelId);
+        } catch (e) {
+            return undefined;
+        }
+    }
+
+    if (!channel?.isThread?.()) return undefined;
+
+    const parent = channel.parent || (channel.parentId
+        ? await interaction.client.channels.fetch(channel.parentId).catch(() => null)
+        : null);
+    if (!parent?.id) return undefined;
+
+    const categoryManager = getCategoryManager();
+    if (!categoryManager?.getProjectByChannelId(parent.id)) return undefined;
+
+    if (storage.getSessionsByThreadId(channel.id).length > 0) return undefined;
+    if (getSessionSyncService()?.getSessionByThreadId(channel.id)) return undefined;
+
+    return channel.id;
+}
+
 export async function recoverSessionCreationState(interaction: any, userId: string) {
     const runnerId = await getRunnerIdFromContext(interaction);
     if (!runnerId) return null;
 
     const projectPath = await getProjectPathFromContext(interaction);
     const projectChannelId = await getProjectChannelIdFromContext(interaction);
+    const targetThreadId = await getReusableSessionThreadIdFromContext(interaction);
     const state = {
         step: 'select_cli' as const,
         runnerId,
         folderPath: projectPath,
-        projectChannelId
+        projectChannelId,
+        targetThreadId
     };
     botState.sessionCreationState.set(userId, state);
     return state;
@@ -218,6 +247,11 @@ export async function resolveSessionCreationState(interaction: any, userId: stri
     if (!state.projectChannelId) {
         const projectChannelId = await getProjectChannelIdFromContext(interaction);
         if (projectChannelId) state.projectChannelId = projectChannelId;
+    }
+
+    if (!state.targetThreadId) {
+        const targetThreadId = await getReusableSessionThreadIdFromContext(interaction);
+        if (targetThreadId) state.targetThreadId = targetThreadId;
     }
 
     botState.sessionCreationState.set(userId, state);

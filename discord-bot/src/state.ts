@@ -67,6 +67,7 @@ export interface SessionCreationState {
     };
     messageId?: string;
     projectChannelId?: string;
+    targetThreadId?: string;
 }
 export const sessionCreationState = new Map<string, SessionCreationState>();
 

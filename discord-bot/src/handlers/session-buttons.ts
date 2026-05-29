@@ -35,6 +35,7 @@ import {
     getRunnerIdFromContext,
     getProjectPathFromContext,
     getProjectChannelIdFromContext,
+    getReusableSessionThreadIdFromContext,
     resolveSessionCreationState
 } from './session-wizard.js';
 
@@ -43,6 +44,7 @@ export {
     getRunnerIdFromContext,
     getProjectPathFromContext,
     getProjectChannelIdFromContext,
+    getReusableSessionThreadIdFromContext,
     resolveSessionCreationState
 };
 
