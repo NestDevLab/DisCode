@@ -13,6 +13,7 @@ import { EventEmitter } from 'events';
 
 export type PluginType = 'tmux' | 'print' | 'pty' | 'stream' | 'claude-sdk' | 'codex-sdk' | 'gemini-sdk';
 export type SessionStatus = 'idle' | 'working' | 'waiting' | 'offline' | 'error';
+export type ThinkingLevelControl = 'default' | 'off' | 'low' | 'medium' | 'high' | 'xhigh';
 
 export interface SessionConfig {
     /** Path to the CLI executable */
@@ -376,6 +377,7 @@ export interface PluginSession {
     setApprovalMode?(mode: 'manual' | 'autoSafe' | 'auto'): Promise<void>;
     setModel?(model: string): Promise<void>;
     setMaxThinkingTokens?(maxTokens: number): Promise<void>;
+    setThinkingLevel?(level: ThinkingLevelControl): Promise<void>;
 
     // Lifecycle
     /** Close/destroy the session */

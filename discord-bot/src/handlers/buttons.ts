@@ -73,6 +73,12 @@ import {
     handleRunnerDashboardButton,
     handleProjectDashboardButton
 } from './commands/dashboard.js';
+import {
+    handleLiveSessionCommandButton,
+    handleLiveSessionControlButton,
+    handleLiveSessionDashboardButton,
+    handleLiveSessionModalButton
+} from './session-dashboard.js';
 import { handleSyncAttachControlButton } from './synced-session-buttons.js';
 import { handleProjectConfigButton } from './project-config.js';
 
@@ -92,6 +98,8 @@ function getAutoDeferMode(customId: string): 'reply' | 'update' | null {
         customId.startsWith('perm_tell_') ||
         customId === 'session_custom_folder' ||
         customId.startsWith('session_settings_modal:') ||
+        customId.startsWith('live_session_model:') ||
+        customId.startsWith('live_session_thinking_tokens:') ||
         isConfigModal;
 
     if (isModalTrigger) return null;
@@ -106,6 +114,8 @@ function getAutoDeferMode(customId: string): 'reply' | 'update' | null {
     if (customId.startsWith('runner_logs:')) return 'reply';
     if (customId.startsWith('runner_clis:')) return 'reply';
     if (customId.startsWith('create_folder_')) return 'reply';
+    if (customId.startsWith('live_session_command:')) return 'reply';
+    if (customId.startsWith('live_session_')) return 'update';
 
     if (customId.startsWith('runner_dashboard:')) return 'update';
     if (customId.startsWith('project_dashboard:')) return 'update';
@@ -229,6 +239,29 @@ export async function handleButtonInteraction(interaction: any): Promise<void> {
     if (customId === 'session_review')           { await handleSessionReview(interaction, userId); return; }
     if (customId.startsWith('session_settings_modal:')) { await handleSessionSettingsModal(interaction, userId, customId); return; }
     if (customId.startsWith('session_settings_'))      { await handleSessionSettings(interaction, userId, customId); return; }
+
+    // ── Live session dashboard ──────────────────────────────────────────
+    if (customId.startsWith('live_session_model:') || customId.startsWith('live_session_thinking_tokens:')) {
+        await handleLiveSessionModalButton(interaction, userId, customId);
+        return;
+    }
+    if (customId.startsWith('live_session_dashboard:')) {
+        await handleLiveSessionDashboardButton(interaction, userId, customId);
+        return;
+    }
+    if (customId.startsWith('live_session_command:')) {
+        await handleLiveSessionCommandButton(interaction, userId, customId);
+        return;
+    }
+    if (
+        customId.startsWith('live_session_approval:') ||
+        customId.startsWith('live_session_edit:') ||
+        customId.startsWith('live_session_thinking:') ||
+        customId.startsWith('live_session_thinking_select:')
+    ) {
+        await handleLiveSessionControlButton(interaction, userId, customId);
+        return;
+    }
 
     // ── Runner dashboard ─────────────────────────────────────────────────
     if (customId.startsWith('runner_dashboard:')) {

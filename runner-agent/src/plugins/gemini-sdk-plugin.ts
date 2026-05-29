@@ -110,6 +110,15 @@ class GeminiSDKSession extends BaseSDKSession {
     this.emitMetadata({ model });
   }
 
+  async setThinkingLevel(level: 'default' | 'off' | 'low' | 'medium' | 'high' | 'xhigh'): Promise<void> {
+    this.emitMetadata({ mode: `thinking:${level}` });
+    this.emitOutput({
+      content: 'Gemini does not support dynamic thinking-level changes yet; leaving runtime behavior unchanged.',
+      isComplete: true,
+      outputType: 'info'
+    });
+  }
+
   async interrupt(): Promise<void> {
     await this.client.interrupt();
     this.outputThrottler.flush(true);

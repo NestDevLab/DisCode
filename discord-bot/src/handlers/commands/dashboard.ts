@@ -14,6 +14,12 @@ import { storage } from '../../storage.js';
 import { getCategoryManager } from '../../services/category-manager.js';
 import { projectSettingsStore } from '../../services/project-settings.js';
 import { createErrorEmbed, createInfoEmbed } from '../../utils/embeds.js';
+import { resolveDashboardSessionFromInteraction, showSessionDashboard } from '../session-dashboard.js';
+
+function formatThinkingLevel(level?: string): string {
+    if (!level || level === 'default_on' || level === 'auto') return 'Default';
+    return level === 'off' ? 'OFF' : level.toUpperCase();
+}
 
 /**
  * Handle /dashboard command
@@ -23,6 +29,18 @@ export async function handleDashboard(
     userId: string
 ): Promise<void> {
     const channelId = interaction.channelId;
+    const { session, error } = await resolveDashboardSessionFromInteraction(interaction, userId);
+    if (session) {
+        await showSessionDashboard(interaction, userId, session);
+        return;
+    }
+    if (error) {
+        await interaction.reply({
+            embeds: [createErrorEmbed('Session Dashboard Unavailable', error)],
+            flags: 64
+        });
+        return;
+    }
 
     // Determine context: runner control channel or project channel
     const categoryManager = getCategoryManager();
@@ -125,7 +143,7 @@ async function showRunnerDashboard(
         { name: '--- Default Settings ---', value: 'These apply to all sessions unless overridden at project level', inline: false },
         { name: 'Permission Mode', value: permMode, inline: true },
         { name: 'Edit Mode', value: editMode, inline: true },
-        { name: 'Thinking Level', value: config.thinkingLevel || 'low', inline: true },
+        { name: 'Thinking Level', value: formatThinkingLevel(config.thinkingLevel), inline: true },
         { name: 'Thread Archive', value: `${config.threadArchiveDays || 3} days`, inline: true }
     );
 
@@ -228,14 +246,14 @@ async function showProjectDashboard(
     const runnerPermMode = runnerConfig.claudeDefaults?.permissionMode ||
         (runnerConfig.yoloMode ? 'yolo' : 'manual');
     const permMode = projectConfig.permissionMode || runnerPermMode;
-    const thinkLevel = projectConfig.thinkingLevel || runnerConfig.thinkingLevel || 'low';
+    const thinkLevel = projectConfig.thinkingLevel || runnerConfig.thinkingLevel || 'default_on';
     const defaultCli = projectConfig.defaultCliType || runner.cliTypes[0] || 'claude';
     const autoSpawn = projectConfig.autoSpawnEnabled !== false ? 'Enabled' : 'Disabled';
 
     embed.addFields(
         { name: 'Permission Mode', value: permMode, inline: true },
         { name: 'Default CLI', value: defaultCli.toUpperCase(), inline: true },
-        { name: 'Thinking Level', value: thinkLevel, inline: true },
+        { name: 'Thinking Level', value: formatThinkingLevel(thinkLevel), inline: true },
         { name: 'Auto-Spawn', value: autoSpawn, inline: true }
     );
 
@@ -341,7 +359,7 @@ export async function handleRunnerDashboardButton(
         { name: '--- Default Settings ---', value: 'These apply to all sessions unless overridden at project level', inline: false },
         { name: 'Permission Mode', value: permMode, inline: true },
         { name: 'Edit Mode', value: editMode, inline: true },
-        { name: 'Thinking Level', value: config.thinkingLevel || 'low', inline: true },
+        { name: 'Thinking Level', value: formatThinkingLevel(config.thinkingLevel), inline: true },
         { name: 'Thread Archive', value: `${config.threadArchiveDays || 3} days`, inline: true }
     );
 
@@ -436,14 +454,14 @@ export async function handleProjectDashboardButton(
     const runnerPermMode = runnerConfig.claudeDefaults?.permissionMode ||
         (runnerConfig.yoloMode ? 'yolo' : 'manual');
     const permMode = projectConfig.permissionMode || runnerPermMode;
-    const thinkLevel = projectConfig.thinkingLevel || runnerConfig.thinkingLevel || 'low';
+    const thinkLevel = projectConfig.thinkingLevel || runnerConfig.thinkingLevel || 'default_on';
     const defaultCli = projectConfig.defaultCliType || runner.cliTypes[0] || 'claude';
     const autoSpawn = projectConfig.autoSpawnEnabled !== false ? 'Enabled' : 'Disabled';
 
     embed.addFields(
         { name: 'Permission Mode', value: permMode, inline: true },
         { name: 'Default CLI', value: defaultCli.toUpperCase(), inline: true },
-        { name: 'Thinking Level', value: thinkLevel, inline: true },
+        { name: 'Thinking Level', value: formatThinkingLevel(thinkLevel), inline: true },
         { name: 'Auto-Spawn', value: autoSpawn, inline: true }
     );
 

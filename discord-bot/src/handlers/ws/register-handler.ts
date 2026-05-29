@@ -27,7 +27,7 @@ export function applyDefaultRunnerConfig(runner: RunnerInfo): void {
         runner.config = {
             threadArchiveDays: 3,
             autoSync: true,
-            thinkingLevel: 'low',
+            thinkingLevel: 'default_on',
             yoloMode: false,
             claudeDefaults: {},
             codexDefaults: {},
@@ -38,7 +38,7 @@ export function applyDefaultRunnerConfig(runner: RunnerInfo): void {
     }
     if (runner.config.threadArchiveDays === undefined) runner.config.threadArchiveDays = 3;
     if (runner.config.autoSync === undefined) runner.config.autoSync = true;
-    if (runner.config.thinkingLevel === undefined) runner.config.thinkingLevel = 'low';
+    if (runner.config.thinkingLevel === undefined) runner.config.thinkingLevel = 'default_on';
     if (runner.config.yoloMode === undefined) runner.config.yoloMode = false;
     if (runner.config.claudeDefaults === undefined) runner.config.claudeDefaults = {};
     if (runner.config.codexDefaults === undefined) runner.config.codexDefaults = {};

@@ -50,7 +50,7 @@ function applyDefaultRunnerConfig(runner: RunnerInfo): void {
         runner.config = {
             threadArchiveDays: 3,
             autoSync: true,
-            thinkingLevel: 'low',
+            thinkingLevel: 'default_on',
             yoloMode: false,
             claudeDefaults: {},
             codexDefaults: {},
@@ -61,7 +61,7 @@ function applyDefaultRunnerConfig(runner: RunnerInfo): void {
     }
     if (runner.config.threadArchiveDays === undefined) runner.config.threadArchiveDays = 3;
     if (runner.config.autoSync === undefined) runner.config.autoSync = true;
-    if (runner.config.thinkingLevel === undefined) runner.config.thinkingLevel = 'low';
+    if (runner.config.thinkingLevel === undefined) runner.config.thinkingLevel = 'default_on';
     if (runner.config.yoloMode === undefined) runner.config.yoloMode = false;
     if (runner.config.claudeDefaults === undefined) runner.config.claudeDefaults = {};
     if (runner.config.codexDefaults === undefined) runner.config.codexDefaults = {};
@@ -500,7 +500,7 @@ async function handleWebSocketMessage(ws: any, message: WebSocketMessage): Promi
                     runner.config = runner.config || {
                         threadArchiveDays: 3,
                         autoSync: true,
-                        thinkingLevel: 'low',
+                        thinkingLevel: 'default_on',
                         yoloMode: false,
                         claudeDefaults: {},
                         codexDefaults: {},
@@ -681,18 +681,18 @@ async function handleRegister(ws: any, data: any): Promise<void> {
         tokenInUse.defaultWorkspace = data.defaultWorkspace;
         tokenInUse.assistantEnabled = data.assistantEnabled ?? tokenInUse.assistantEnabled ?? true;
         if (data.claudeDefaults && typeof data.claudeDefaults === 'object') {
-            tokenInUse.config = tokenInUse.config || { threadArchiveDays: 3, autoSync: true, thinkingLevel: 'low', yoloMode: false, claudeDefaults: {}, codexDefaults: {}, geminiDefaults: {} };
+            tokenInUse.config = tokenInUse.config || { threadArchiveDays: 3, autoSync: true, thinkingLevel: 'default_on', yoloMode: false, claudeDefaults: {}, codexDefaults: {}, geminiDefaults: {} };
             tokenInUse.config.claudeDefaults = mergeClaudeDefaultsPreservingPermissionMode(
                 tokenInUse.config.claudeDefaults,
                 data.claudeDefaults
             );
         }
         if (data.codexDefaults && typeof data.codexDefaults === 'object') {
-            tokenInUse.config = tokenInUse.config || { threadArchiveDays: 3, autoSync: true, thinkingLevel: 'low', yoloMode: false, claudeDefaults: {}, codexDefaults: {}, geminiDefaults: {} };
+            tokenInUse.config = tokenInUse.config || { threadArchiveDays: 3, autoSync: true, thinkingLevel: 'default_on', yoloMode: false, claudeDefaults: {}, codexDefaults: {}, geminiDefaults: {} };
             tokenInUse.config.codexDefaults = { ...data.codexDefaults };
         }
         if (data.geminiDefaults && typeof data.geminiDefaults === 'object') {
-            tokenInUse.config = tokenInUse.config || { threadArchiveDays: 3, autoSync: true, thinkingLevel: 'low', yoloMode: false, claudeDefaults: {}, codexDefaults: {}, geminiDefaults: {} };
+            tokenInUse.config = tokenInUse.config || { threadArchiveDays: 3, autoSync: true, thinkingLevel: 'default_on', yoloMode: false, claudeDefaults: {}, codexDefaults: {}, geminiDefaults: {} };
             tokenInUse.config.geminiDefaults = { ...data.geminiDefaults };
         }
         applyDefaultRunnerConfig(tokenInUse);
@@ -776,18 +776,18 @@ async function handleRegister(ws: any, data: any): Promise<void> {
         // Update assistantEnabled from registration message
         existingRunner.assistantEnabled = data.assistantEnabled ?? true;
         if (data.claudeDefaults && typeof data.claudeDefaults === 'object') {
-            existingRunner.config = existingRunner.config || { threadArchiveDays: 3, autoSync: true, thinkingLevel: 'low', yoloMode: false, claudeDefaults: {}, codexDefaults: {}, geminiDefaults: {} };
+            existingRunner.config = existingRunner.config || { threadArchiveDays: 3, autoSync: true, thinkingLevel: 'default_on', yoloMode: false, claudeDefaults: {}, codexDefaults: {}, geminiDefaults: {} };
             existingRunner.config.claudeDefaults = mergeClaudeDefaultsPreservingPermissionMode(
                 existingRunner.config.claudeDefaults,
                 data.claudeDefaults
             );
         }
         if (data.codexDefaults && typeof data.codexDefaults === 'object') {
-            existingRunner.config = existingRunner.config || { threadArchiveDays: 3, autoSync: true, thinkingLevel: 'low', yoloMode: false, claudeDefaults: {}, codexDefaults: {}, geminiDefaults: {} };
+            existingRunner.config = existingRunner.config || { threadArchiveDays: 3, autoSync: true, thinkingLevel: 'default_on', yoloMode: false, claudeDefaults: {}, codexDefaults: {}, geminiDefaults: {} };
             existingRunner.config.codexDefaults = { ...data.codexDefaults };
         }
         if (data.geminiDefaults && typeof data.geminiDefaults === 'object') {
-            existingRunner.config = existingRunner.config || { threadArchiveDays: 3, autoSync: true, thinkingLevel: 'low', yoloMode: false, claudeDefaults: {}, codexDefaults: {}, geminiDefaults: {} };
+            existingRunner.config = existingRunner.config || { threadArchiveDays: 3, autoSync: true, thinkingLevel: 'default_on', yoloMode: false, claudeDefaults: {}, codexDefaults: {}, geminiDefaults: {} };
             existingRunner.config.geminiDefaults = { ...data.geminiDefaults };
         }
         applyDefaultRunnerConfig(existingRunner);
@@ -837,7 +837,7 @@ async function handleRegister(ws: any, data: any): Promise<void> {
             config: {
                 threadArchiveDays: 3,
                 autoSync: true,
-                thinkingLevel: 'low',
+                thinkingLevel: 'default_on',
                 yoloMode: false,
                 claudeDefaults: data.claudeDefaults && typeof data.claudeDefaults === 'object' ? { ...data.claudeDefaults } : {},
                 codexDefaults: data.codexDefaults && typeof data.codexDefaults === 'object' ? { ...data.codexDefaults } : {},
