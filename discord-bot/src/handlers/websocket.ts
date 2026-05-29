@@ -24,6 +24,7 @@ import { clearAttachApprovalFallback } from '../services/synced-session-control.
 import { permissionStateStore } from '../permissions/state-store.js';
 import { rebuildPermissionButtons } from './permission-buttons.js';
 import { safeEditReply } from './interaction-safety.js';
+import { resolveStreamingContent } from '../utils/streaming.js';
 import type { WebSocketMessage, RunnerInfo, Session } from '../../../shared/types.ts';
 
 console.log('[DEBUG] websocket.ts MODULE LOADED - Unified UI Version');
@@ -1422,20 +1423,14 @@ async function handleOutput(data: any): Promise<void> {
     // so split streaming can continue from the current chunk instead of restarting.
     const incomingContent = typeof data.content === 'string' ? data.content : String(data.content ?? '');
 
-    // Check if we should edit existing message or create new one
-    // Edit if: we have streaming state, same output type, and within timeout
-    const shouldStream = Boolean(currentStreaming &&
+    // Check if we should edit existing message or create new one.
+    // Edit only when this payload is a continuation of the active accumulated stream.
+    const shouldStreamCandidate = Boolean(currentStreaming &&
         (now - currentStreaming.lastUpdateTime) < STREAMING_TIMEOUT &&
         currentStreaming.outputType === outputType);
-
-    let displayContent = incomingContent;
-    if (shouldStream && currentStreaming) {
-        const previousAccumulated = currentStreaming.accumulatedContent ?? currentStreaming.content;
-        if (previousAccumulated && incomingContent.startsWith(previousAccumulated)) {
-            const delta = incomingContent.slice(previousAccumulated.length);
-            displayContent = `${currentStreaming.content}${delta}`;
-        }
-    }
+    const streamingContent = resolveStreamingContent(incomingContent, currentStreaming, shouldStreamCandidate);
+    const shouldStream = streamingContent.shouldStream;
+    let displayContent = streamingContent.displayContent;
 
     console.log(`[Output] Session: ${data.sessionId}, Type: ${outputType}, ShouldStream: ${shouldStream}, HasStreaming: ${!!currentStreaming}, ContentLen: ${displayContent.length}`);
 
