@@ -116,7 +116,8 @@ export class WebSocketManager extends EventEmitter {
 
     send(message: WebSocketMessage): boolean {
         if (this.ws && this._isConnected && this.ws.readyState === WebSocket.OPEN) {
-            this.ws.send(JSON.stringify(message), (err) => {
+            const payload = JSON.stringify(this.limitPayloadSize(message));
+            this.ws.send(payload, (err) => {
                 if (err) {
                     console.error('WebSocket send error:', err);
                 }
@@ -124,6 +125,32 @@ export class WebSocketManager extends EventEmitter {
             return true;
         }
         return false;
+    }
+
+    private limitPayloadSize(message: WebSocketMessage): WebSocketMessage {
+        const configuredMax = Number.parseInt(process.env.DISCODE_WS_MAX_CONTENT_CHARS || '', 10);
+        const maxContentChars = Number.isFinite(configuredMax) && configuredMax > 0 ? configuredMax : 120000;
+        const data = (message as any).data;
+        if (!data || typeof data.content !== 'string' || data.content.length <= maxContentChars) {
+            return message;
+        }
+
+        const omitted = data.content.length - maxContentChars;
+        const headChars = Math.floor(maxContentChars * 0.65);
+        const tailChars = maxContentChars - headChars;
+        const head = data.content.slice(0, headChars);
+        const tail = data.content.slice(data.content.length - tailChars);
+        console.warn(`[WebSocket] Truncating oversized ${message.type} payload content from ${data.content.length} to ${maxContentChars} chars`);
+
+        return {
+            ...(message as any),
+            data: {
+                ...data,
+                content: `${head}\n\n[DisCode truncated ${omitted} oversized characters before sending over WebSocket]\n\n${tail}`,
+                truncated: true,
+                originalContentLength: data.content.length
+            }
+        } as WebSocketMessage;
     }
 
     private startHeartbeat(): void {
