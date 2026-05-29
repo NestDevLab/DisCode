@@ -363,6 +363,8 @@ export interface PluginSession {
     sendMessage(message: string): Promise<void>;
     /** Send a message with image attachments (for vision-capable CLIs) */
     sendMessageWithImages?(text: string, images: Array<{ data: string; mediaType: string }>): Promise<void>;
+    /** Send a message with local image files (for SDKs that accept file paths) */
+    sendMessageWithLocalImages?(text: string, images: Array<{ path: string; mediaType: string }>): Promise<void>;
 
     // Approval handling
     /** Send an approval response (for plugins that support it) */

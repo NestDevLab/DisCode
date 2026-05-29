@@ -8,7 +8,8 @@ import {
   BasePlugin,
   PluginSession,
   SessionConfig,
-  SessionStatus
+  SessionStatus,
+  PluginOptions
 } from './base.js';
 import {
   BaseSDKSession,
@@ -36,7 +37,8 @@ import {
   ThreadListParams,
   ThreadListResponse,
   ModelListParams,
-  ModelListResponse
+  ModelListResponse,
+  UserInput
 } from '@raylin01/codex-client';
 
 // Codex-specific approval entry
@@ -53,7 +55,7 @@ interface CodexApprovalEntry {
 class CodexSDKSession extends BaseSDKSession {
   private threadId: string | null = null;
   private activeTurnId: string | null = null;
-  private messageQueue: MessageQueue;
+  private messageQueue: MessageQueue<UserInput[]>;
   private codexPlugin: CodexSDKPlugin;
   private permissionModeOverride: 'default' | 'acceptEdits' | undefined;
   private approvalModeOverride: 'manual' | 'autoSafe' | 'auto' = 'manual';
@@ -78,7 +80,7 @@ class CodexSDKSession extends BaseSDKSession {
   constructor(config: SessionConfig, plugin: CodexSDKPlugin) {
     super(config, plugin);
     this.codexPlugin = plugin;
-    this.messageQueue = new MessageQueue((message) => this.doSendMessage(message));
+    this.messageQueue = new MessageQueue((input) => this.doSendInput(input));
     const options = config.options || {};
     this.permissionModeOverride =
       options.permissionMode === 'default' || options.permissionMode === 'acceptEdits'
@@ -97,7 +99,7 @@ class CodexSDKSession extends BaseSDKSession {
       (options.approvalPolicy as AskForApproval | undefined) ?? undefined;
   }
 
-  private getEffectiveApprovalPolicy(options: Record<string, unknown>): AskForApproval | null {
+  private getEffectiveApprovalPolicy(options: PluginOptions): AskForApproval | null {
     if (this.approvalPolicyOverride !== undefined) {
       return this.approvalPolicyOverride;
     }
@@ -168,10 +170,18 @@ class CodexSDKSession extends BaseSDKSession {
   }
 
   async sendMessage(message: string): Promise<void> {
-    return this.messageQueue.enqueue(message);
+    return this.messageQueue.enqueue([{ type: 'text', text: message, text_elements: [] }]);
   }
 
-  private async doSendMessage(message: string): Promise<void> {
+  async sendMessageWithLocalImages(text: string, images: Array<{ path: string; mediaType: string }>): Promise<void> {
+    const input: UserInput[] = images.map(image => ({ type: 'localImage', path: image.path }));
+    if (text.trim()) {
+      input.push({ type: 'text', text, text_elements: [] });
+    }
+    return this.messageQueue.enqueue(input);
+  }
+
+  private async doSendInput(input: UserInput[]): Promise<void> {
     if (!this.threadId) {
       throw new Error('Codex thread not initialized');
     }
@@ -183,7 +193,7 @@ class CodexSDKSession extends BaseSDKSession {
     const options = this.config.options || {};
     const turnParams: TurnStartParams = {
       threadId: this.threadId,
-      input: [{ type: 'text', text: message, text_elements: [] }],
+      input,
       cwd: null,
       approvalPolicy: this.getEffectiveApprovalPolicy(options),
       sandboxPolicy: this.toSandboxPolicy(options.sandboxPolicy ?? options.sandbox ?? null),
