@@ -148,7 +148,10 @@ async function startup(): Promise<void> {
       console.log(`  ✓ AssistantManager initialized (enabled: ${assistantManager.isEnabled()})`);
     }
     // Initialize SyncService
-    const syncService = getSyncService(wsManager, { codexPath: cliPaths.codex });
+    const syncService = getSyncService(wsManager, {
+      codexPath: cliPaths.codex,
+      allowedProjectPaths: config.defaultWorkspace ? [config.defaultWorkspace] : undefined
+    });
     if (syncService) {
         console.log('  ✓ SyncService initialized');
         // Initial projects will be synced on Bot request or heartbeat

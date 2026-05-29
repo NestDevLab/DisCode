@@ -341,44 +341,6 @@ export function getCommandDefinitions(): (SlashCommandBuilder | SlashCommandOpti
       ),
 
     new SlashCommandBuilder()
-      .setName('codex-threads')
-      .setDescription('List Codex threads available on a runner')
-      .addStringOption(option =>
-        option.setName('runner')
-          .setDescription('Runner ID (optional)')
-          .setRequired(false)
-      )
-      .addBooleanOption(option =>
-        option.setName('archived')
-          .setDescription('Include archived threads')
-          .setRequired(false)
-      )
-      .addIntegerOption(option =>
-        option.setName('limit')
-          .setDescription('Max threads to display (default 10)')
-          .setRequired(false)
-      ),
-
-    new SlashCommandBuilder()
-      .setName('resume-codex')
-      .setDescription('Resume a Codex thread')
-      .addStringOption(option =>
-        option.setName('thread')
-          .setDescription('Codex thread ID to resume')
-          .setRequired(true)
-      )
-      .addStringOption(option =>
-        option.setName('runner')
-          .setDescription('Runner ID (optional)')
-          .setRequired(false)
-      )
-      .addStringOption(option =>
-        option.setName('cwd')
-          .setDescription('Working directory override (optional)')
-          .setRequired(false)
-      ),
-
-    new SlashCommandBuilder()
       .setName('delete-project')
       .setDescription('Delete a project and its channel')
       .addStringOption(option =>

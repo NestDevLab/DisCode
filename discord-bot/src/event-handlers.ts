@@ -45,8 +45,6 @@ import {
   handleResumeSession,
   handleRegisterProject,
   handleDeleteProject,
-  handleCodexThreads,
-  handleResumeCodex,
   handleDashboard,
 } from './handlers/index.js';
 
@@ -257,14 +255,6 @@ async function handleChatInputCommand(
 
     case 'resume':
       await handleResumeSession(interaction, userId);
-      break;
-
-    case 'codex-threads':
-      await handleCodexThreads(interaction, userId);
-      break;
-
-    case 'resume-codex':
-      await handleResumeCodex(interaction, userId);
       break;
 
     case 'delete-project':

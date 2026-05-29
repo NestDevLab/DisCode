@@ -25,6 +25,7 @@ export interface RunnerConfig {
   autoSync?: boolean;
   thinkingLevel?: 'high' | 'medium' | 'low';
   yoloMode?: boolean; // If true, auto-approve commands
+  defaultCliType?: 'claude' | 'gemini' | 'codex';
   claudeDefaults?: Record<string, any>;
   codexDefaults?: Record<string, any>;
   geminiDefaults?: Record<string, any>;
@@ -98,7 +99,7 @@ export interface RunnerInfo {
     };
     projects?: Record<string, { channelId: string; lastSync?: string; dashboardMessageId?: string }>;
     // Persist session->thread mapping to prevent duplicates on restart
-    sessions?: Record<string, { threadId: string; projectPath: string; lastSync?: string; cliType?: 'claude' | 'codex' | 'gemini' }>;
+    sessions?: Record<string, { threadId: string; projectPath: string; lastSync?: string; cliType?: 'claude' | 'codex' | 'gemini'; messageCount?: number }>;
   };
 }
 
