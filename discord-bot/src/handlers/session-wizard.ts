@@ -40,6 +40,7 @@ import {
     getRunnerIdFromContext,
     getProjectPathFromContext,
     getProjectChannelIdFromContext,
+    getReusableSessionThreadIdFromContext,
     resolveSessionCreationState,
     recoverSessionCreationState
 } from './session-context.js';
@@ -49,6 +50,7 @@ export {
     getRunnerIdFromContext,
     getProjectPathFromContext,
     getProjectChannelIdFromContext,
+    getReusableSessionThreadIdFromContext,
     resolveSessionCreationState
 };
 
@@ -76,7 +78,8 @@ export async function handleRunnerSelection(interaction: any, userId: string, cu
         step: 'select_cli',
         runnerId: runnerId,
         ...(existingState?.folderPath ? { folderPath: existingState.folderPath } : {}),
-        ...(existingState?.projectChannelId ? { projectChannelId: existingState.projectChannelId } : {})
+        ...(existingState?.projectChannelId ? { projectChannelId: existingState.projectChannelId } : {}),
+        ...(existingState?.targetThreadId ? { targetThreadId: existingState.targetThreadId } : {})
     });
 
     // CLI type buttons (+ Terminal option)
@@ -960,17 +963,38 @@ export async function handleStartSession(interaction: any, userId: string): Prom
             return;
         }
 
-        const textChannel = channel as any;
-        const threadType = channelId === runner.privateChannelId
-            ? ChannelType.PrivateThread
-            : ChannelType.PublicThread;
+        let thread: any | null = null;
 
-        const thread = await textChannel.threads.create({
-            name: `${state.cliType.toUpperCase()}-${Date.now()}`,
-            type: threadType,
-            invitable: threadType === ChannelType.PrivateThread ? false : undefined,
-            reason: `CLI session for ${state.cliType}`
-        });
+        if (state.targetThreadId) {
+            const candidateThread = await botState.client.channels.fetch(state.targetThreadId).catch(() => null) as any;
+            const isReusableThread =
+                candidateThread?.isThread?.() &&
+                candidateThread.parentId === channel.id &&
+                storage.getSessionsByThreadId(candidateThread.id).length === 0 &&
+                !getSessionSyncService()?.getSessionByThreadId(candidateThread.id);
+
+            if (!isReusableThread) {
+                await safeReplyOrEdit(interaction, {
+                    embeds: [createErrorEmbed('Cannot Reuse Thread', 'This thread is already bound to a session or is no longer under the selected project channel.')],
+                    flags: 64
+                });
+                return;
+            }
+
+            thread = candidateThread;
+        } else {
+            const textChannel = channel as any;
+            const threadType = channelId === runner.privateChannelId
+                ? ChannelType.PrivateThread
+                : ChannelType.PublicThread;
+
+            thread = await textChannel.threads.create({
+                name: `${state.cliType.toUpperCase()}-${Date.now()}`,
+                type: threadType,
+                invitable: threadType === ChannelType.PrivateThread ? false : undefined,
+                reason: `CLI session for ${state.cliType}`
+            });
+        }
 
         const storageCLIType = state.cliType === 'terminal' ? 'generic' : state.cliType;
 

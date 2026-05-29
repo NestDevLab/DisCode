@@ -12,7 +12,12 @@ import { getCategoryManager } from '../services/category-manager.js';
 import { getSessionSyncService } from '../services/session-sync.js';
 import { listSessions } from '@raylin01/claude-client/sessions';
 import { cliToSdkPlugin } from './button-utils.js';
-import { getRunnerIdFromContext, getProjectPathFromContext, getProjectChannelIdFromContext } from './session-buttons.js';
+import {
+    getRunnerIdFromContext,
+    getProjectPathFromContext,
+    getProjectChannelIdFromContext,
+    getReusableSessionThreadIdFromContext
+} from './session-buttons.js';
 import { safeDeferReply, safeEditReply } from './interaction-safety.js';
 
 // ---------------------------------------------------------------------------
@@ -395,11 +400,13 @@ export async function handleNewSessionButton(interaction: any, userId: string, p
 
     // Initialize session creation state with pre-filled values
     const projectChannelId = await getProjectChannelIdFromContext(interaction);
+    const targetThreadId = await getReusableSessionThreadIdFromContext(interaction);
     botState.sessionCreationState.set(userId, {
         step: 'select_cli',
         runnerId: runnerId,
         folderPath: resolvedProjectPath,
-        projectChannelId
+        projectChannelId,
+        targetThreadId
     });
 
     // SDK-ONLY: If single CLI type, auto-map to SDK plugin and go to review
@@ -413,7 +420,8 @@ export async function handleNewSessionButton(interaction: any, userId: string, p
             cliType: cliType as 'claude' | 'gemini' | 'codex' | 'terminal',
             plugin,
             folderPath: resolvedProjectPath,
-            projectChannelId
+            projectChannelId,
+            targetThreadId
         });
 
         // Go directly to review since we have CLI, plugin, and folder

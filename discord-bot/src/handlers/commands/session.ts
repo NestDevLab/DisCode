@@ -14,7 +14,7 @@ import { getSessionSyncService } from '../../services/session-sync.js';
 import { projectSettingsStore } from '../../services/project-settings.js';
 import { permissionStateStore } from '../../permissions/state-store.js';
 import { cliToSdkPlugin, cliTypeLabel } from '../button-utils.js';
-import { handleSessionReview } from '../session-wizard.js';
+import { getReusableSessionThreadIdFromContext, handleSessionReview } from '../session-wizard.js';
 import type { RunnerInfo, Session } from '../../../../shared/types.ts';
 
 type AiCliType = 'claude' | 'gemini' | 'codex';
@@ -76,6 +76,7 @@ async function resolveProjectContext(interaction: any): Promise<{
     runnerId?: string;
     projectPath?: string;
     projectChannelId?: string;
+    targetThreadId?: string;
 }> {
     const categoryManager = getCategoryManager();
     if (!categoryManager) return {};
@@ -104,7 +105,8 @@ async function resolveProjectContext(interaction: any): Promise<{
         return {
             runnerId: projectInfo.runnerId,
             projectPath: projectInfo.projectPath,
-            projectChannelId: channel.id
+            projectChannelId: channel.id,
+            targetThreadId: await getReusableSessionThreadIdFromContext(interaction)
         };
     }
 
@@ -117,7 +119,8 @@ async function resolveProjectContext(interaction: any): Promise<{
     return {
         runnerId,
         ...(projectPath ? { projectPath } : {}),
-        projectChannelId: channel.id
+        projectChannelId: channel.id,
+        targetThreadId: await getReusableSessionThreadIdFromContext(interaction)
     };
 }
 
@@ -277,7 +280,8 @@ export async function handleCreateSession(interaction: any, userId: string): Pro
             step: 'select_cli',
             runnerId: runner.runnerId,
             ...(projectContext.projectPath ? { folderPath: projectContext.projectPath } : {}),
-            ...(projectContext.projectChannelId ? { projectChannelId: projectContext.projectChannelId } : {})
+            ...(projectContext.projectChannelId ? { projectChannelId: projectContext.projectChannelId } : {}),
+            ...(projectContext.targetThreadId ? { targetThreadId: projectContext.targetThreadId } : {})
         });
 
         const preferredCli = resolvePreferredCliType(runner, requestedCli, projectContext.projectPath);
@@ -344,7 +348,8 @@ export async function handleCreateSession(interaction: any, userId: string): Pro
     botState.sessionCreationState.set(userId, {
         step: 'select_runner',
         ...(projectContext.projectPath ? { folderPath: projectContext.projectPath } : {}),
-        ...(projectContext.projectChannelId ? { projectChannelId: projectContext.projectChannelId } : {})
+        ...(projectContext.projectChannelId ? { projectChannelId: projectContext.projectChannelId } : {}),
+        ...(projectContext.targetThreadId ? { targetThreadId: projectContext.targetThreadId } : {})
     });
 
     // Row 1: Runner buttons
