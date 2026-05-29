@@ -39,6 +39,7 @@ import {
   handleSetApprovalMode,
   handleSetPermissionMode,
   handleSetThinkingTokens,
+  handleAgentCommand,
   handleAssistantCommand,
   handleSyncProjects,
   handleSyncSession,
@@ -235,6 +236,10 @@ async function handleChatInputCommand(
 
     case 'respawn-session':
       await handleRespawnSession(interaction, userId);
+      break;
+
+    case 'agent-command':
+      await handleAgentCommand(interaction, userId);
       break;
 
     case 'assistant':

@@ -272,6 +272,20 @@ export function getCommandDefinitions(): (SlashCommandBuilder | SlashCommandOpti
       ),
 
     new SlashCommandBuilder()
+      .setName('agent-command')
+      .setDescription('Send raw command text to a tmux CLI session')
+      .addStringOption(option =>
+        option.setName('command')
+          .setDescription('Command text to send to tmux, e.g. /model')
+          .setRequired(true)
+      )
+      .addStringOption(option =>
+        option.setName('session')
+          .setDescription('Session ID (optional - auto-detects from current thread)')
+          .setRequired(false)
+      ),
+
+    new SlashCommandBuilder()
       .setName('assistant')
       .setDescription('Send a message to the runner assistant')
       .addStringOption(option =>

@@ -45,6 +45,9 @@ export {
 // Interrupt command
 export { handleInterrupt } from './interrupt.js';
 
+// Agent command
+export { handleAgentCommand } from './agent-command.js';
+
 // Assistant command
 export { handleAssistantCommand } from './assistant.js';
 
