@@ -2,12 +2,13 @@
 #
 # spawn-thread.sh - Spawn a new CLI thread in a specific folder
 #
-# Usage: spawn-thread.sh <folder_path> <cli_type> [initial_message]
+# Usage: spawn-thread.sh <folder_path> <cli_type> [initial_message] [target_channel_id]
 #
 # Arguments:
 #   folder_path     - Path to the working directory for the new thread
 #   cli_type        - CLI to use: "claude", "gemini", or "auto"
 #   initial_message - Optional first message to send to the new session
+#   target_channel_id - Optional Discord channel ID to create the thread under
 #
 
 set -e
@@ -18,11 +19,12 @@ export PATH=$PATH:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin
 FOLDER_PATH="${1:-}"
 CLI_TYPE="${2:-auto}"
 INITIAL_MESSAGE="${3:-}"
+TARGET_CHANNEL_ID="${4:-${DISCODE_SPAWN_CHANNEL_ID:-${DISCODE_CHANNEL_ID:-}}}"
 
 # Validate folder path
 if [ -z "$FOLDER_PATH" ]; then
     echo "Error: folder_path is required"
-    echo "Usage: spawn-thread.sh <folder_path> <cli_type> [initial_message]"
+    echo "Usage: spawn-thread.sh <folder_path> <cli_type> [initial_message] [target_channel_id]"
     exit 1
 fi
 
@@ -33,8 +35,9 @@ PORT="${DISCODE_HTTP_PORT:-3122}"
 PAYLOAD=$(node -e 'console.log(JSON.stringify({
     folder: process.argv[1],
     cliType: process.argv[2],
-    message: process.argv[3]
-}))' "$FOLDER_PATH" "$CLI_TYPE" "$INITIAL_MESSAGE")
+    message: process.argv[3],
+    targetChannelId: process.argv[4] || undefined
+}))' "$FOLDER_PATH" "$CLI_TYPE" "$INITIAL_MESSAGE" "$TARGET_CHANNEL_ID")
 
 # Call the runner agent's spawn-thread endpoint
 RESPONSE=$(curl -s -X POST "http://localhost:${PORT}/spawn-thread" \

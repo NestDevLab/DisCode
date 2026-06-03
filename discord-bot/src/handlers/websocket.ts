@@ -61,6 +61,7 @@ function applyDefaultRunnerConfig(runner: RunnerInfo): void {
     }
     if (runner.config.threadArchiveDays === undefined) runner.config.threadArchiveDays = 3;
     if (runner.config.autoSync === undefined) runner.config.autoSync = true;
+    if (runner.config.spawnChannelIds === undefined) runner.config.spawnChannelIds = [];
     if (runner.config.thinkingLevel === undefined) runner.config.thinkingLevel = 'default_on';
     if (runner.config.yoloMode === undefined) runner.config.yoloMode = false;
     if (runner.config.claudeDefaults === undefined) runner.config.claudeDefaults = {};
@@ -92,6 +93,42 @@ function applyTokenRunnerConfig(runner: RunnerInfo, tokenInfo: any): void {
             ...(tokenConfig.presets || {})
         }
     };
+}
+
+function getRunnerSpawnChannelIds(runner: RunnerInfo): Set<string> {
+    const ids = new Set<string>();
+
+    if (runner.privateChannelId) ids.add(runner.privateChannelId);
+    if (runner.discordState?.controlChannelId) ids.add(runner.discordState.controlChannelId);
+
+    for (const project of Object.values(runner.discordState?.projects || {})) {
+        if (project?.channelId) ids.add(project.channelId);
+    }
+
+    for (const channelId of runner.config?.spawnChannelIds || []) {
+        if (typeof channelId === 'string' && channelId.trim()) {
+            ids.add(channelId.trim());
+        }
+    }
+
+    return ids;
+}
+
+function resolveSpawnTargetChannelId(runner: RunnerInfo, requestedChannelId?: unknown): string | null {
+    const fallbackChannelId = runner.privateChannelId || runner.discordState?.controlChannelId;
+    const channelId = typeof requestedChannelId === 'string' && requestedChannelId.trim()
+        ? requestedChannelId.trim()
+        : fallbackChannelId;
+
+    if (!channelId) return null;
+
+    const allowedChannelIds = getRunnerSpawnChannelIds(runner);
+    if (!allowedChannelIds.has(channelId)) {
+        console.error(`[SpawnThread] Channel ${channelId} is not enabled for runner ${runner.runnerId}. Allowed: ${Array.from(allowedChannelIds).join(', ') || 'none'}`);
+        return null;
+    }
+
+    return channelId;
 }
 
 function mergeClaudeDefaultsPreservingPermissionMode(
@@ -752,6 +789,8 @@ async function handleRegister(ws: any, data: any): Promise<void> {
                         plugin: session.plugin,
                         folderPath: session.folderPath,
                         resume: true,
+                        channelId: session.channelId,
+                        threadId: session.threadId,
                         options: startOptions
                     }
                 }));
@@ -901,6 +940,8 @@ async function handleRegister(ws: any, data: any): Promise<void> {
                         plugin: session.plugin,
                         folderPath: session.folderPath,
                         resume: true, // Always resume for SDK sessions - runner will find CLI ID
+                        channelId: session.channelId,
+                        threadId: session.threadId,
                         options: startOptions
                     }
                 }));
@@ -2102,10 +2143,10 @@ async function handleAssistantOutput(data: any): Promise<void> {
  * Creates a new session and Discord thread
  */
 async function handleSpawnThread(ws: any, data: any): Promise<void> {
-    const { runnerId, folder, cliType, initialMessage } = data;
+    const { runnerId, folder, cliType, initialMessage, targetChannelId } = data;
 
     console.log(`[SpawnThread] Received request from runner ${runnerId}`);
-    console.log(`[SpawnThread] Folder: ${folder}, CLI: ${cliType}`);
+    console.log(`[SpawnThread] Folder: ${folder}, CLI: ${cliType}, Target channel: ${targetChannelId || 'default'}`);
 
     const runner = storage.getRunner(runnerId);
     if (!runner) {
@@ -2113,8 +2154,9 @@ async function handleSpawnThread(ws: any, data: any): Promise<void> {
         return;
     }
 
-    if (!runner.privateChannelId) {
-        console.error(`[SpawnThread] Runner has no private channel: ${runnerId}`);
+    const spawnChannelId = resolveSpawnTargetChannelId(runner, targetChannelId);
+    if (!spawnChannelId) {
+        console.error(`[SpawnThread] Runner has no valid spawn channel: ${runnerId}`);
         return;
     }
 
@@ -2130,10 +2172,9 @@ async function handleSpawnThread(ws: any, data: any): Promise<void> {
     }
 
     try {
-        // Get the private channel
-        const channel = await botState.client.channels.fetch(runner.privateChannelId);
+        const channel = await botState.client.channels.fetch(spawnChannelId);
         if (!channel || !('threads' in channel)) {
-            console.error(`[SpawnThread] Invalid channel: ${runner.privateChannelId}`);
+            console.error(`[SpawnThread] Invalid channel: ${spawnChannelId}`);
             return;
         }
 
@@ -2158,7 +2199,7 @@ async function handleSpawnThread(ws: any, data: any): Promise<void> {
         const session: Session = {
             sessionId,
             runnerId: runner.runnerId,
-            channelId: runner.privateChannelId,
+            channelId: channel.id,
             threadId: thread.id,
             createdAt: new Date().toISOString(),
             status: 'active',
@@ -2181,6 +2222,8 @@ async function handleSpawnThread(ws: any, data: any): Promise<void> {
                 plugin: 'tmux',
                 folderPath: folder,
                 create: true,
+                channelId: channel.id,
+                threadId: thread.id,
                 options: startOptions
             }
         }));

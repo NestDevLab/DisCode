@@ -31,6 +31,8 @@ export async function handleSessionStart(
         cliType: 'claude' | 'gemini' | 'codex' | 'terminal' | 'generic';
         plugin?: 'tmux' | 'print' | 'stream' | 'claude-sdk' | 'codex-sdk' | 'gemini-sdk';
         folderPath?: string;
+        channelId?: string;
+        threadId?: string;
         create?: boolean;
         resume?: boolean;
         options?: PluginOptions;
@@ -115,6 +117,20 @@ export async function handleSessionStart(
             ...(defaultOptions || {}),
             ...(data.options || {})
         };
+        const discordEnv: Record<string, string> = {};
+        if (data.channelId) {
+            discordEnv.DISCODE_CHANNEL_ID = data.channelId;
+            discordEnv.DISCODE_SPAWN_CHANNEL_ID = data.channelId;
+        }
+        if (data.threadId) {
+            discordEnv.DISCODE_THREAD_ID = data.threadId;
+        }
+        if (Object.keys(discordEnv).length > 0) {
+            mergedOptions.env = {
+                ...(mergedOptions.env || {}),
+                ...discordEnv
+            };
+        }
 
         if (data.cliType === 'gemini' && mergedOptions.autoApproveSafe) {
             // Gemini SDK currently does not expose interactive approval callbacks

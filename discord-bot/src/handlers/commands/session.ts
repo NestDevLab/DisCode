@@ -750,6 +750,8 @@ export async function handleRespawnSession(interaction: any, userId: string): Pr
             cliType: lastSession.cliType,
             plugin: lastSession.plugin,  // Include plugin type from original session
             folderPath: lastSession.folderPath,
+            channelId: newSession.channelId,
+            threadId: newSession.threadId,
             options: startOptions
         }
     }));

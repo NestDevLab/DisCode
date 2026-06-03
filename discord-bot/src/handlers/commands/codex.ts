@@ -236,6 +236,8 @@ export async function handleResumeCodex(interaction: ChatInputCommandInteraction
             plugin: 'codex-sdk',
             folderPath,
             resume: true,
+            channelId: session.channelId,
+            threadId: session.threadId,
             options: startOptions
         }
     }));

@@ -535,6 +535,19 @@ async function handleRunnerConfigModal(interaction: any, userId: string, customI
         runner.config.geminiDefaults.allowedMcpServerNames = raw
             ? raw.split(',').map((value) => value.trim()).filter(Boolean)
             : [];
+    } else if (param === 'setSpawnChannels') {
+        const raw = interaction.fields.getTextInputValue('spawnChannelIds').trim();
+        const channelIds = raw
+            ? raw.split(',').map((value) => value.trim()).filter(Boolean)
+            : [];
+
+        const invalid = channelIds.find((value) => !/^\d{15,25}$/.test(value));
+        if (invalid) {
+            await interaction.reply({ content: `Invalid Discord channel ID: ${invalid}`, flags: 64 });
+            return;
+        }
+
+        runner.config.spawnChannelIds = Array.from(new Set(channelIds));
     } else if (param === 'savePreset') {
         const name = interaction.fields.getTextInputValue('presetName').trim();
         if (!name) {

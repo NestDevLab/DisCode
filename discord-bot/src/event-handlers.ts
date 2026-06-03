@@ -578,6 +578,8 @@ async function spawnThreadFromMessage(
         plugin: session.plugin,
         folderPath: projectPath,
         create: true,
+        channelId: channel.id,
+        threadId: thread.id,
         options: startOptions
       }
     }));

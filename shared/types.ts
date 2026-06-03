@@ -23,6 +23,7 @@ export interface TokenInfo {
 export interface RunnerConfig {
   threadArchiveDays?: number; // 3, 7, 30, or -1 (never)
   autoSync?: boolean;
+  spawnChannelIds?: string[]; // Additional Discord text channels where runner-spawned sessions may create threads
   thinkingLevel?: 'off' | 'low' | 'medium' | 'high' | 'auto' | 'default_on';
   yoloMode?: boolean; // If true, auto-approve commands
   claudeDefaults?: Record<string, any>;
@@ -538,6 +539,9 @@ export interface SessionStartMessage extends WebSocketMessage {
     cliType: 'claude' | 'gemini' | 'codex' | 'terminal' | 'generic';
     folderPath?: string;
     plugin?: 'tmux' | 'print' | 'stream' | 'claude-sdk' | 'codex-sdk' | 'gemini-sdk';
+    channelId?: string;
+    threadId?: string;
+    options?: Record<string, any>;
   };
 }
 
@@ -611,7 +615,8 @@ export interface SpawnThreadMessage extends WebSocketMessage {
   data: {
     runnerId: string;
     folder: string;
-    cliType?: 'claude' | 'gemini' | 'auto';
+    cliType?: 'claude' | 'gemini' | 'codex' | 'auto';
     initialMessage?: string;
+    targetChannelId?: string;
   };
 }

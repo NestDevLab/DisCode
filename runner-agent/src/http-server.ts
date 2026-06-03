@@ -277,7 +277,7 @@ async function handleSpawnThread(ctx: RouteContext): Promise<void> {
 
     try {
         const data = await readRequestBody(ctx.req);
-        const { folder, cliType, message } = data;
+        const { folder, cliType, message, targetChannelId } = data;
 
         if (!folder) {
             sendJsonResponse(res, { error: 'folder is required' }, 400);
@@ -297,7 +297,8 @@ async function handleSpawnThread(ctx: RouteContext): Promise<void> {
                 runnerId: deps.wsManager.runnerId,
                 folder: folder,
                 cliType: cliType || 'auto',
-                initialMessage: message || undefined
+                initialMessage: message || undefined,
+                targetChannelId: targetChannelId || undefined
             }
         });
 

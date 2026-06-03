@@ -1020,6 +1020,8 @@ export async function handleStartSession(interaction: any, userId: string): Prom
                     cliType: state.cliType,
                     folderPath: folderPath,
                     plugin: state.plugin,
+                    channelId: session.channelId,
+                    threadId: session.threadId,
                     options: effectiveStartOptions
                 }
             }));
@@ -1105,6 +1107,8 @@ export async function handleCreateFolderRetry(interaction: any, userId: string, 
                 cliType: session.cliType,
                 folderPath: session.folderPath,
                 create: true,
+                channelId: session.channelId,
+                threadId: session.threadId,
                 options: startOptions
             }
         }));

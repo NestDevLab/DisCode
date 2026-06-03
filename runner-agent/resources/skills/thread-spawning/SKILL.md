@@ -24,13 +24,14 @@ Creates a new Discord thread with a CLI session in the specified folder.
 
 **Usage**:
 ```bash
-/path/to/bin/spawn-thread.sh "<folder_path>" "<cli_type>" "<initial_message>"
+/path/to/bin/spawn-thread.sh "<folder_path>" "<cli_type>" "<initial_message>" "<target_channel_id>"
 ```
 
 **Arguments**:
 - `folder_path` - Absolute path or path relative to default workspace
 - `cli_type` - "claude", "gemini", or "auto" (uses first available CLI)
 - `initial_message` - Optional first message to send to the new session
+- `target_channel_id` - Optional Discord text channel ID. If omitted, the current session's parent channel is used when available.
 
 **Examples**:
 

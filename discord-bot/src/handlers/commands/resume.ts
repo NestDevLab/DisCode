@@ -254,6 +254,8 @@ export async function handleResumeSession(interaction: ChatInputCommandInteracti
                 plugin: pluginForCli(resolvedCliType),
                 folderPath: projectPath,
                 resume: true, // Explicitly flag as resume
+                channelId: sessionObj.channelId,
+                threadId: sessionObj.threadId,
                 options: startOptions
             }
         }));

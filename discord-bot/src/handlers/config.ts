@@ -278,6 +278,7 @@ export async function handleRunnerConfig(
     const config: RunnerConfig = runner.config || {
         threadArchiveDays: 3,
         autoSync: true,
+        spawnChannelIds: [],
         thinkingLevel: 'default_on',
         yoloMode: false,
         claudeDefaults: {},
@@ -627,7 +628,14 @@ export async function handleRunnerConfig(
             embed.addFields(
                 { name: 'Runner ID', value: `\`${runnerId}\``, inline: true },
                 { name: 'Status', value: runner.status || 'unknown', inline: true },
-                { name: 'Owner', value: `<@${runner.ownerId}>`, inline: true }
+                { name: 'Owner', value: `<@${runner.ownerId}>`, inline: true },
+                {
+                    name: 'Spawn Channels',
+                    value: config.spawnChannelIds && config.spawnChannelIds.length > 0
+                        ? config.spawnChannelIds.map((id) => `<#${id}>`).join('\n')
+                        : 'Runner/control and project channels only',
+                    inline: false
+                }
             );
 
             // Clear all defaults button
@@ -635,7 +643,11 @@ export async function handleRunnerConfig(
                 .setCustomId(`config:${runnerId}:action:clearAllDefaults`)
                 .setLabel('Clear All Defaults')
                 .setStyle(ButtonStyle.Danger);
-            rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(clearAllBtn));
+            const spawnChannelsBtn = new ButtonBuilder()
+                .setCustomId(`config:${runnerId}:modal:setSpawnChannels`)
+                .setLabel('Spawn Channels')
+                .setStyle(ButtonStyle.Secondary);
+            rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(spawnChannelsBtn, clearAllBtn));
             break;
     }
 
@@ -861,6 +873,8 @@ async function handleConfigModal(
         ? 'Update Codex Defaults'
         : param.startsWith('setGemini')
         ? 'Update Gemini Defaults'
+        : param === 'setSpawnChannels'
+        ? 'Update Spawn Channels'
         : 'Update Claude Defaults';
     const modal = new ModalBuilder()
         .setCustomId(`config_modal:${runnerId}:${param}`)
@@ -929,6 +943,9 @@ async function handleConfigModal(
         input.setCustomId('geminiExtensions').setLabel('Extensions (comma-separated)');
     } else if (param === 'setGeminiAllowedMcpServerNames') {
         input.setCustomId('geminiAllowedMcpServerNames').setLabel('Allowed MCP Servers (comma-separated)');
+    } else if (param === 'setSpawnChannels') {
+        input.setCustomId('spawnChannelIds').setLabel('Channel IDs comma-separated');
+        input.setRequired(false);
     } else if (param === 'savePreset') {
         input.setCustomId('presetName').setLabel('Preset Name');
     } else if (param === 'applyPreset') {

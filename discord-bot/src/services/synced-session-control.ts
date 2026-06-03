@@ -152,6 +152,8 @@ export async function attachSyncedSessionControl(
       plugin: syncedPlugin,
       folderPath: syncEntry.projectPath,
       resume: true,
+      channelId: sessionObj.channelId,
+      threadId: params.threadId,
       options: startOptions
     }
   }));
