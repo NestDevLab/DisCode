@@ -172,6 +172,10 @@ export async function getProjectPathFromContext(interaction: any): Promise<strin
     return projectInfo?.projectPath;
 }
 
+export function hasActiveSessionInThread(threadId: string): boolean {
+    return storage.getSessionsByThreadId(threadId).some(session => session.status === 'active');
+}
+
 export async function getReusableSessionThreadIdFromContext(interaction: any): Promise<string | undefined> {
     let channel = interaction.channel;
     if (!channel && interaction.channelId) {
@@ -192,7 +196,7 @@ export async function getReusableSessionThreadIdFromContext(interaction: any): P
     const categoryManager = getCategoryManager();
     if (!categoryManager?.getProjectByChannelId(parent.id)) return undefined;
 
-    if (storage.getSessionsByThreadId(channel.id).length > 0) return undefined;
+    if (hasActiveSessionInThread(channel.id)) return undefined;
     if (getSessionSyncService()?.getSessionByThreadId(channel.id)) return undefined;
 
     return channel.id;

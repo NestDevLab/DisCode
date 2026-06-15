@@ -41,6 +41,7 @@ import {
     getProjectPathFromContext,
     getProjectChannelIdFromContext,
     getReusableSessionThreadIdFromContext,
+    hasActiveSessionInThread,
     resolveSessionCreationState,
     recoverSessionCreationState
 } from './session-context.js';
@@ -970,7 +971,7 @@ export async function handleStartSession(interaction: any, userId: string): Prom
             const isReusableThread =
                 candidateThread?.isThread?.() &&
                 candidateThread.parentId === channel.id &&
-                storage.getSessionsByThreadId(candidateThread.id).length === 0 &&
+                !hasActiveSessionInThread(candidateThread.id) &&
                 !getSessionSyncService()?.getSessionByThreadId(candidateThread.id);
 
             if (!isReusableThread) {
