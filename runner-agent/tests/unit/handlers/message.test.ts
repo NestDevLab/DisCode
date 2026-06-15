@@ -37,7 +37,7 @@ describe('handleUserMessage attachments', () => {
         await handleUserMessage({
             sessionId: 'session/one',
             userId: 'user-1',
-            username: 'Joseph',
+            username: 'Test User',
             content: 'Please inspect this file.',
             attachments: [{
                 name: '../report final.pdf',
